@@ -53,12 +53,23 @@ def vcf_annotate_dbsnp(vcfgz, dbsnp, vcf_out_gz):
    subprocess.check_call(dbsnp_call, shell=True)
 
 
-def vcf_filter_rmsk(vcfgz, rmsk, header, vcfgz_out):
+def vcf_filter_rmsk(vcfgz, rmsk, vcfgz_out):
    '''Removes variants called inside annotated repeat
    If no rmsk is given it simply copies the file'''
    
+   import pipelinemod
+   import string
+   import random
+   
    paths = pipelinemod.setSystem()
    if rmsk:
+      # create header
+      N = 10
+      rand = ''.join(random.choice(string.ascii_uppercase + string.digits) for x in range(N))
+      header = 'tmp' + rand + '.header.vcf'
+      header_call = '/usr/bin/gunzip -c %s | head -n 1000 | grep "#" > %s' % (vcfgz, header)
+      subprocess.check_call(header_call, shell=True)
+      
       # perform rmsk filtering
       gunzip_call = '/usr/bin/gunzip -c %s' % vcfgz
       bgzip_call = paths['bin_home'] + 'bgzip -c > %s' % vcfgz_out
@@ -69,6 +80,9 @@ def vcf_filter_rmsk(vcfgz, rmsk, header, vcfgz_out):
       call = '%s | %s' % (gunzip_call, bed_call)
       logger.info(call)
       subprocess.check_call(call, shell=True)
+      
+      # remove header
+      subprocess.check_call('rm %s' % header, shell=True)
    else:
       call = 'cp %s %s' % (vcfgz, vcfgz_out)
       logger.info(call)
@@ -185,6 +199,9 @@ vcf_annotate_dbsnp(files['filterAll'], args.dbsnp, files['dbsnp_ann'])
 
 # filter rmsk (not using BEDtools)
 manual_rmsk_filter(files['dbsnp_ann'], args.rmsk, files['rmsk'])
+
+# filter rmsk using BEDtools
+vcf_filter_rmsk(files['dbsnp_ann'], args.rmsk, header, files['rmsk'])
 
 # indel filter
 vcf_filter_indels(files['rmsk'] % args.chr, args.indels, files['indel_filt'], args.o)
