@@ -1,4 +1,4 @@
 
-# Change rmsk_filtering in bcf2ref to bedtools because the manual version goes out of memory
-# Perhaps toggle so that this is only done for MT dna
-
+## Genotyping
+# change to always perform genotyping on all positions and then extract variants from these
+# this way genotyping only needs to be run once and low/hc variants and same-as-ref can be extracted

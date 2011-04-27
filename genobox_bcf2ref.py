@@ -43,7 +43,7 @@ def start_bcf2ref(bcf, genome_file, Q, ex, dbsnp, rmsk, indels, o, queue, logger
    bcf2ref_calls = []
    cmd = 'python2.7 ' + paths['genobox_home'] + 'genobox_bcf2ref_h.py'
    for chr in genome:
-      outfile = o + '.' + chr[2] + 'ref.ann.vcf.gz'
+      outfile = 'genotyping/' + o + '.' + chr[2] + '.ref.ann.vcf.gz'
       arg = ' --bcf %s --chr_id \"%s\" --chr %s --d %s --D %s --Q %f --ex %s --dbsnp %s --rmsk %s --indels %s --o %s' % (bcf, chr[0], chr[2], chr[4], chr[5], Q, ex, dbsnp, rmsk, indels, outfile)
       bcf2ref_calls.append(cmd+arg)
    
@@ -59,3 +59,4 @@ def start_bcf2ref(bcf, genome_file, Q, ex, dbsnp, rmsk, indels, o, queue, logger
    # semaphore
    print "Waiting for jobs to finish ..."
    pipelinemod.wait_semaphore(bcf2ref_ids, home, 'bcf2ref', queue, 20, 2*86400)
+   print "--------------------------------------"

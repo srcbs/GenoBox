@@ -27,37 +27,31 @@ def get_genome(chr_file):
       L.append(s)
    return L
 
-def mpileup(bam, chr_file, fa, prior, pp, var):
+def mpileup(bam, chr_file, fa, prior, pp):
    '''Perform SNP calling on bam-file using samtools'''
    
    import pipelinemod
+   import os
+   
    paths = pipelinemod.setSystem()
    cmd = 'python2.7 ' + paths['genobox_home'] + 'genobox_mpileup.py'
    calls = []
+   outfiles = []
    
    # if chromosome file is given
    if chr_file:
       chrs = get_genome(chr_file)
-      outfiles = []
       for c in chrs:
-         if var:
-            outfile = 'genotyping/tmp.' + c[2] + '.var.bcf'
-            outfiles.append(outfile)
-         else:
-            outfile = 'genotyping/tmp.' + c[2] + '.all.bcf'
-            outfiles.append(outfile)         
+         outfile = 'genotyping/tmp.' + c[2] + '.all.bcf'
+         outfiles.append(outfile)         
          arg = ' --bam %s --chr \"%s\" --fa %s --prior %s --pp %f --o %s' % (bam, c[0], fa, prior, pp, outfile)
-         if var:
-            arg = arg + ' --var'
          calls.append(cmd+arg)
    else:
-      if var:
-         outfile = 'genotyping/tmp.' + bam + '.var.bcf'
-         outfiles.append(outfile)
-      else:
-         outfile = 'genotyping/tmp.' + bam + '.all.bcf'
-         outfiles.append(outfile)
+      tmpfile_name = os.path.split(bam)[1]
+      outfile = 'genotyping/tmp.' + tmpfile_name + '.all.bcf'
+      outfiles.append(outfile)
       arg = ' --bam %s --fa %s --prior %s --pp %f --o %s' % (bam, fa, prior, pp, outfile)
+      calls.append(cmd+arg)
    return (calls, outfiles)
 
 def bcf_combine(bcfs, outfile):
@@ -84,7 +78,7 @@ def bcf_index(bcf):
    calls.append(cmd+arg)
    return calls
 
-def start_genotyping(bam, chr, fa, prior, pp, var, queue, o, logger):
+def start_genotyping(bam, chr, fa, prior, pp, queue, o, logger):
    '''Starts genotyping using samtools of input bam file'''
    
    import subprocess
@@ -107,7 +101,7 @@ def start_genotyping(bam, chr, fa, prior, pp, var, queue, o, logger):
    bamindex_calls = bam_index(bam)
    
    # get mpileup calls
-   (mpileup_calls, bcffiles) = mpileup(bam, chr, fa, prior, pp, var)
+   (mpileup_calls, bcffiles) = mpileup(bam, chr, fa, prior, pp)
    
    # get bcf combine calls
    bcfcombine_calls = bcf_combine(bcffiles, o)
@@ -130,4 +124,7 @@ def start_genotyping(bam, chr, fa, prior, pp, var, queue, o, logger):
    # semaphore
    print "Waiting for jobs to finish ..."
    pipelinemod.wait_semaphore(bcfindex_ids, home, 'genotyping', queue, 20, 2*86400)
-
+   print "--------------------------------------"
+   
+   # return output bcf
+   return o

@@ -18,7 +18,7 @@ def all_same(items):
    return all(x == items[0] for x in items)
 
 
-def bwa_se_align(fastqs, bwaindex, fqtypes, qtrim, alignpath, threads, queue, logger):
+def bwa_se_align(fastqs, bwaindex, fqtypes, qtrim, alignpath, r, threads, queue, logger):
    '''Start alignment using bwa of fastq reads on index'''
    
    import subprocess
@@ -56,7 +56,7 @@ def bwa_se_align(fastqs, bwaindex, fqtypes, qtrim, alignpath, threads, queue, lo
       f = os.path.split(fq)[1]
       samfile = alignpath + f + '.sam'
       samfiles.append(samfile)
-      call = '%sbwa samse %s %s %s > %s' % (paths['bwa_home'], bwaindex, saifiles[i], fq, samfile)
+      call = '%sbwa samse -r %s %s %s %s > %s' % (paths['bwa_home'], r, bwaindex, saifiles[i], fq, samfile)
       bwa_samse.append(call)
    
    # sam2bam
@@ -81,13 +81,10 @@ def bwa_se_align(fastqs, bwaindex, fqtypes, qtrim, alignpath, threads, queue, lo
    # release jobs
    releasemsg = pipelinemod.releasejobs(allids)
    
-   return sam2bamids
-   #semaphore_file = pipelinemod.add_semaphore(bamfiles, 'semaphores/bwa_se_align')
-   #semaphore_file = add_semaphore(allids, 'semaphores/bwa_se_align')
-   #return semaphore_file
+   return (sam2bamids, bamfiles)
 
 
-def bwa_pe_align(pe1, pe2, bwaindex, fqtypes_pe1, fqtypes_pe2, qtrim, alignpath, a, threads, queue, logger):
+def bwa_pe_align(pe1, pe2, bwaindex, fqtypes_pe1, fqtypes_pe2, qtrim, alignpath, a, r, threads, queue, logger):
    '''Start alignment using bwa of paired end fastq reads on index'''
    
    import subprocess
@@ -140,7 +137,7 @@ def bwa_pe_align(pe1, pe2, bwaindex, fqtypes_pe1, fqtypes_pe2, qtrim, alignpath,
       # generate calls
       bwa_align1 = '%s -t %s -q %i %s -f %s %s ' % (bwa_cmd, threads, qtrim, bwaindex, saifiles1[i], pe1[i])
       bwa_align2 = '%s -t %s -q %i %s -f %s %s ' % (bwa_cmd, threads, qtrim, bwaindex, saifiles2[i], pe2[i])
-      sampecall = '%sbwa sampe -a %i %s -f %s %s %s %s %s ' % (paths['bwa_home'], a, bwaindex, samfiles[i], saifiles1[i], saifiles2[i], pe1[i], pe2[i])
+      sampecall = '%sbwa sampe -a %i -r %s %s -f %s %s %s %s %s ' % (paths['bwa_home'], a, r, bwaindex, samfiles[i], saifiles1[i], saifiles2[i], pe1[i], pe2[i])
       bwa_align1_calls.append(bwa_align1)
       bwa_align2_calls.append(bwa_align2)
       bwa_sampe_calls.append(sampecall)
@@ -165,52 +162,45 @@ def bwa_pe_align(pe1, pe2, bwaindex, fqtypes_pe1, fqtypes_pe2, qtrim, alignpath,
       bwa_alignids.append(bwa_alignids2[i])
    
    # submit sam2bam
-   bwa_samseids = pipelinemod.submitjob(bwa_sampe_calls, home, paths, logger, 'run_genobox_bwasampe', queue, cpuA, True, 'conc', len(pe1), True, *bwa_alignids)
+   bwa_samseids = pipelinemod.submitjob(bwa_sampe_calls, home, paths, logger, 'run_genobox_bwasampe', queue, cpuA, True, 'conc', len(bwa_alignids), True, *bwa_alignids)
    sam2bamids = pipelinemod.submitjob(sam2bam_calls, home, paths, logger, 'run_genobox_sam2bam', queue, cpuC, True, 'one2one', 1, True, *bwa_samseids)
    
    # release jobs
    allids.extend(bwa_alignids) ; allids.extend(bwa_samseids) ; allids.extend(sam2bamids)
    releasemsg = pipelinemod.releasejobs(allids)
    
-   return sam2bamids
+   return (sam2bamids, bamfiles)
    
-   # add semaphores
-   #semaphore_file = pipelinemod.add_semaphore(bamfiles, 'semaphores/bwa_pe_align')
-   #return semaphore_file
 
-
-def start_alignment(se, pe1, pe2, bwaindex, alignpath, qtrim, a, n, queue, logger):
+def start_alignment(se, pe1, pe2, bwaindex, alignpath, qtrim, a, r, n, queue, logger):
    '''Start alignment of fastq files using BWA'''
    
    import pipelinemod
    import subprocess
    import os
    paths = pipelinemod.setSystem()
+   home = os.getcwd()
    semaphore_ids = []
+   bamfiles = []
    
    if not os.path.exists(alignpath):
       os.makedirs(alignpath)
    
    # start single end alignments
    if se:
-      # set absolute paths
-      se = map(os.path.abspath, se)
       
       # set fqtypes
       fqtypes_se = map(check_formats_fq, se)
       print "Submitting single end alignments"
-      semaphore_se_align_ids = bwa_se_align(se, bwaindex, fqtypes_se, qtrim, alignpath, n, queue, logger)
-      semaphore_ids.extend(semaphore_se_align_ids)
-   
+      (se_align_ids, bamfiles_se) = bwa_se_align(se, bwaindex, fqtypes_se, qtrim, alignpath, r, n, queue, logger)
+      semaphore_ids.extend(se_align_ids)
+      bamfiles.extend(bamfiles_se)
+      
    # start paired end alignments
    if pe1:
       if len(pe1) != len(pe2):
          raise ValueError('Same number of files must be given to --pe1 and --pe2')
-      
-      # set absolute paths
-      pe1 = map(os.path.abspath, pe1)
-      pe2 = map(os.path.abspath, pe2)
-      
+            
       # set fqtypes
       fqtypes_pe = []
       fqtypes_pe1 = map(check_formats_fq, pe1)
@@ -219,9 +209,15 @@ def start_alignment(se, pe1, pe2, bwaindex, alignpath, qtrim, a, n, queue, logge
       fqtypes_pe.extend(fqtypes_pe2)
       
       print "Submitting paired end alignments"
-      semaphore_pe_align_ids = bwa_pe_align(pe1, pe2, bwaindex, fqtypes_pe1, fqtypes_pe2, qtrim, alignpath, a, n, queue, logger)            
-      semaphore_ids.extend(semaphore_pe_align_ids)
+      (pe_align_ids, bamfiles_pe) = bwa_pe_align(pe1, pe2, bwaindex, fqtypes_pe1, fqtypes_pe2, qtrim, alignpath, a, r, n, queue, logger)            
+      semaphore_ids.extend(pe_align_ids)
+      bamfiles.extend(bamfiles_pe)
    
    # wait for jobs to finish
-   print "Waiting for alignments to finish" 
+   print "Waiting for jobs to finish ..." 
    pipelinemod.wait_semaphore(semaphore_ids, home, 'bwa_alignment', queue, 60, 86400)
+   print "--------------------------------------"
+   
+   # return bamfiles   
+   return bamfiles
+   

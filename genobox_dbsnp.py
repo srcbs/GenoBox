@@ -39,4 +39,5 @@ def start_dbsnp(vcf, ex, dbsnp, o, queue, logger):
    # semaphore
    print "Waiting for jobs to finish ..."
    pipelinemod.wait_semaphore(dbsnp_ids, home, 'dbsnp', queue, 20, 2*86400)
+   print "--------------------------------------"
 

@@ -76,7 +76,7 @@ def bam_filter_sort(lib2bam, bam2lib, m=500000000):
    
    import pipelinemod
    paths = pipelinemod.setSystem()
-   cmd = 'python2.7 ' + paths['pyscripts_home'] + 'samFilterSort.py'
+   cmd = 'python2.7 ' + paths['genobox_home'] + 'genobox_samFilterSort.py'
    calls = []
    
    # set infiles and outfiles
@@ -216,7 +216,9 @@ def start_bamprocess(lib_file, bams, mapq, libs, tmpdir, queue, final_bam, logge
    releasemsg = pipelinemod.releasejobs(allids)
    
    # semaphore
-   print "Waiting for jobs to finish ..."
+   print "Waiting for jobs to finish ..." 
    pipelinemod.wait_semaphore(merge_final_ids, home, 'bam_processing', queue, 20, 2*86400)
+   print "--------------------------------------"
    
-   
+   # return final bamfile
+   return final_bam

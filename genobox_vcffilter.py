@@ -47,3 +47,7 @@ def start_vcffilter(bcf, genome, caller, Q, rmsk, ab, prune, o, queue, logger):
    # semaphore
    print "Waiting for jobs to finish ..."
    pipelinemod.wait_semaphore(vcffilter_ids, home, 'vcffilter', queue, 20, 2*86400)
+   print "--------------------------------------"
+   
+   # return filename of final vcf
+   return o

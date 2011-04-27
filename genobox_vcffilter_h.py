@@ -10,13 +10,17 @@ import logging
 
 def get_genome(chr_file):
    '''Read genome file into list of list'''
-   fh = open(chr_file, 'r')
-   L = []
-   for line in fh:
-      line = line.rstrip()
-      s = line.split('\t')
-      L.append(s)
-   return L
+   
+   if chr_file:
+      fh = open(chr_file, 'r')
+      L = []
+      for line in fh:
+         line = line.rstrip()
+         s = line.split('\t')
+         L.append(s)
+      return L
+   else:
+      raise IOError('genome file not given, input as --genome <file>')
 
 def bcf2varfilter(bcf, genome, Q, vcf_prefix):
    '''Runs bcf through varfilter and writes to vcf'''
@@ -58,7 +62,7 @@ def vcf_filter_rmsk(vcf, rmsk, vcf_out):
    '''Removes variants called inside annotated repeat
    If no rmsk is given it simply copies the file'''
    
-   if rmsk:
+   if rmsk and rmsk != 'None':
       # add header
       head_call = 'head -n 1000 %s | grep "#" > %s' % (vcf, vcf_out)
       logger.info(head_call)
@@ -123,74 +127,84 @@ def vcf_filter_allelic_balance(vcf, threshold, caller, vcf_out):
    elif caller == 'gatk':
       depth_re = re.compile('\d\/\d:(\d+),(\d+)')
    
-   # parse
-   count = 0
-   hetzygote = 0
-   homzygote = 0
-   fh = open(vcf, 'r')
-   fh_out = open(vcf_out, 'w')
-   for line in fh:
-      if line.startswith('#'):
-         fh_out.write(line)
-         continue
-      
-      count += 1
-      fields = line.split()
-      
-      # get allelic counts
-      counts = depth_re.search(line).groups()
-      if caller == 'samtools':
-         ref=int(counts[0]) + int(counts[1])
-         nonref= int(counts[2]) + int(counts[3])
-      elif caller == 'gatk':
-         ref=int(counts[0])
-         nonref=int(counts[1])
-      
-      # calc frequency
-      if ref < nonref:
-         freq = ref / (ref+nonref)
-      else:
-         freq = nonref/ (ref+nonref)
-      
-      # filter based on state
-      state = state_re.search(line)
-      if state.groups()[0] == state.groups()[1]:
-         homzygote += 1
-         if freq < threshold:
+   if threshold != 0.5:
+      # parse
+      count = 0
+      hetzygote = 0
+      homzygote = 0
+      fh = open(vcf, 'r')
+      fh_out = open(vcf_out, 'w')
+      for line in fh:
+         if line.startswith('#'):
             fh_out.write(line)
-      elif state.groups()[0] != state.groups()[1]:
-         hetzygote += 1
-         if freq >= threshold:
-            fh_out.write(line)
-
+            continue
+         
+         count += 1
+         fields = line.split()
+         
+         # get allelic counts
+         counts = depth_re.search(line).groups()
+         if caller == 'samtools':
+            ref=int(counts[0]) + int(counts[1])
+            nonref= int(counts[2]) + int(counts[3])
+         elif caller == 'gatk':
+            ref=int(counts[0])
+            nonref=int(counts[1])
+         
+         # calc frequency
+         if ref < nonref:
+            freq = ref / (ref+nonref)
+         else:
+            freq = nonref/ (ref+nonref)
+         
+         # filter based on state
+         state = state_re.search(line)
+         if state.groups()[0] == state.groups()[1]:
+            homzygote += 1
+            if freq < threshold:
+               fh_out.write(line)
+         elif state.groups()[0] != state.groups()[1]:
+            hetzygote += 1
+            if freq >= threshold:
+               fh_out.write(line)
+   else:
+      call = 'cp %s %s' % (vcf, vcf_out)
+      logger.info(call)
+      subprocess.check_call(call)
+      
+   
 def vcf_filter_prune(vcf, prune, vcf_out):
    '''Prune variants within N nt of each other'''
    
    paths = pipelinemod.setSystem()
    
-   # create header
-   head_call = 'head -n 1000 %s | grep "#" > %s' % (vcf, 'header.vcf')
-   logger.info(head_call)
-   subprocess.check_call(head_call, shell=True)
-   
-   tmp_file = vcf + '.tmp'
-   prune_script = paths['pyscripts_home'] + 'saqqaq_snppruning.R'
-   prune_cmd = paths['R_home'] + 'R-2.12'
-   prune_arg = ' --vanilla %i %s %s < %s' % (prune, vcf, tmp_file, prune_script)
-   prune_call = prune_cmd + prune_arg
-   logger.info(prune_call)
-   subprocess.check_call(prune_call, shell=True)
-   
-   # add header
-   header_call = 'cat header.vcf %s > %s' % (tmp_file, vcf_out)
-   logger.info(header_call)
-   subprocess.check_call(header_call, shell=True)
-   
-   # rm tmp_files
-   #rm_call = 'rm %s header.vcf' % tmp_file
-   #logger.info(rm_call)
-   #subprocess.check_call(rm_call, shell=True)
-   
+   if prune != 0:
+      # create header
+      head_call = 'head -n 1000 %s | grep "#" > %s' % (vcf, 'header.vcf')
+      logger.info(head_call)
+      subprocess.check_call(head_call, shell=True)
+      
+      tmp_file = vcf + '.tmp'
+      prune_script = paths['pyscripts_home'] + 'saqqaq_snppruning.R'
+      prune_cmd = paths['R_home'] + 'R-2.12'
+      prune_arg = ' --vanilla %i %s %s < %s' % (prune, vcf, tmp_file, prune_script)
+      prune_call = prune_cmd + prune_arg
+      logger.info(prune_call)
+      subprocess.check_call(prune_call, shell=True)
+      
+      # add header
+      header_call = 'cat header.vcf %s > %s' % (tmp_file, vcf_out)
+      logger.info(header_call)
+      subprocess.check_call(header_call, shell=True)
+      
+      # rm tmp_files
+      #rm_call = 'rm %s header.vcf' % tmp_file
+      #logger.info(rm_call)
+      #subprocess.check_call(rm_call, shell=True)
+   else:
+      call = 'cp %s %s' % (vcf, vcf_out)
+      logger.info(call)
+      subprocess.check_call(call)
 
 # create the parser
 parser = argparse.ArgumentParser(description=
@@ -220,6 +234,7 @@ parser.add_argument('--log', help='log level [info]', default='info')
 
 args = parser.parse_args()
 #args = parser.parse_args('--bcf Aborigine_trimmed_hg19.flat.var.bcf --chr build37_rCRS.genome --Q 40 --rmsk /panvol1/simon/databases/hs_ref37_rCRS/rmsk/rmsk_build37_rCRS.sort.gi.genome --prune 5 --ab 0.2'.split())
+#args = parser.parse_args('--bcf /panvol1/simon/projects/cge/test/kleb_10_213361/genotyping/kleb_10_213361.bcf --genome /panvol1/simon/projects/cge/test/kleb_10_213361/kleb_pneu.genome --caller samtools --Q 40.000000 --rmsk None --ab 20.000000 --prune 5 --o genotyping/kleb_10_213361.vcf'.split())
 
 # set logging
 logger = logging.getLogger('genobox.py')

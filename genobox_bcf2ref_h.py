@@ -45,20 +45,36 @@ def vcf_annotate_dbsnp(vcfgz, dbsnp, vcf_out_gz):
    
    paths = pipelinemod.setSystem()
    
-   gunzip_call = '/usr/bin/gunzip -c %s' % vcfgz
-   fill_call = paths['bin_home'] + 'fill-rsIDs -r %s | bgzip -c > %s' % (dbsnp, vcf_out_gz)
-   
-   dbsnp_call = '%s | %s' % (gunzip_call, fill_call)
-   logger.info(dbsnp_call)
-   subprocess.check_call(dbsnp_call, shell=True)
+   if dbsnp:
+      gunzip_call = '/usr/bin/gunzip -c %s' % vcfgz
+      fill_call = paths['bin_home'] + 'fill-rsIDs -r %s | bgzip -c > %s' % (dbsnp, vcf_out_gz)
+      
+      dbsnp_call = '%s | %s' % (gunzip_call, fill_call)
+      logger.info(dbsnp_call)
+      subprocess.check_call(dbsnp_call, shell=True)
+   else:
+      call = 'cp %s %s' % (vcfgz, vcf_out_gz)
+      logger.info(call)
+      subprocess.check_call(call, shell=True)
 
-
-def vcf_filter_rmsk(vcfgz, rmsk, header, vcfgz_out):
+def vcf_filter_rmsk(vcfgz, rmsk, vcfgz_out):
    '''Removes variants called inside annotated repeat
    If no rmsk is given it simply copies the file'''
    
+   import random
+   import string
+   import pipelinemod
+   
    paths = pipelinemod.setSystem()
    if rmsk:
+      # create header
+      N = 10
+      rand = ''.join(random.choice(string.ascii_uppercase + string.digits) for x in range(N))
+      header = 'genotyping/tmp'+rand+'.header.vcf'
+      header_call = '/usr/bin/gunzip -c %s | head -n 1000 | grep "#" > %s' % (vcfgz, header)
+      logger.info(header_call)
+      subprocess.check_call(header_call, shell=True)
+      
       # perform rmsk filtering
       gunzip_call = '/usr/bin/gunzip -c %s' % vcfgz
       bgzip_call = paths['bin_home'] + 'bgzip -c > %s' % vcfgz_out
@@ -69,62 +85,83 @@ def vcf_filter_rmsk(vcfgz, rmsk, header, vcfgz_out):
       call = '%s | %s' % (gunzip_call, bed_call)
       logger.info(call)
       subprocess.check_call(call, shell=True)
+      
+      # rm tmp header file
+      subprocess.check_call('rm %s' % header, shell=True)
    else:
       call = 'cp %s %s' % (vcfgz, vcfgz_out)
       logger.info(call)
       subprocess.check_call(call, shell=True)
 
-def read_rmsk(rmsk):
+def read_rmsk(rmsk, chr):
    '''Read rmsk file and return dictionary of positions to filter
    only keep positions that matches chromosome being analyzed'''
    
+   # because this is only used for MT dna only keep chromosomal positions from rmsk file
+   # that matches MT (to minimize memory)
    fh = open(rmsk, 'r')
    dict = {}
-   for line in fh:
-      line = line.rstrip()
-      fields = line.split('\t')
-      for pos in xrange(int(fields[1]), int(fields[2])+1, 1):
-         dict[fields[0], str(pos)] = 1
+   if chr.find('MT') > -1:
+      for line in fh:
+         line = line.rstrip()
+         fields = line.split('\t')
+         if fields[0] == 'MT':
+            for pos in xrange(int(fields[1]), int(fields[2])+1, 1):
+               dict[fields[0], str(pos)] = 1
+   else:
+      for line in fh:
+         line = line.rstrip()
+         fields = line.split('\t')
+         for pos in xrange(int(fields[1]), int(fields[2])+1, 1):
+            dict[fields[0], str(pos)] = 1
+   
    return dict
 
-def manual_rmsk_filter(vcf, rmsk, vcf_out):
+def manual_rmsk_filter(vcfgz, chr, rmsk, vcfgz_out):
    '''Manually filter vcfgz using rmsk file'''
    
-   # get rmsk as dict
-   rmsk_dict = read_rmsk(rmsk)
-   
-   # loop over positions
-   fh = open(vcf, 'r')
-   fh_out = open(vcf_out, 'w')
-   for line in fh:
-      if line.startswith('#'):
-         fh_out.write(line)
-         continue
+   if rmsk:
+      import gzip
       
-      fields = line.split('\t')
-      if rmsk_dict.has_key((fields[0], fields[1])):
-         pass
-      else:
-         fh_out.write(line)
+      # get rmsk as dict
+      rmsk_dict = read_rmsk(rmsk, chr)
+      
+      # loop over positions
+      fh = gzip.open(vcfgz, 'rb')
+      fh_out = gzip.open(vcfgz_out, 'wb')
+      for line in fh:
+         if line.startswith('#'):
+            fh_out.write(line)
+            continue
+         
+         fields = line.split('\t')
+         if rmsk_dict.has_key((fields[0], fields[1])):
+            pass
+         else:
+            fh_out.write(line)
+   else:
+      call = 'cp %s %s' % (vcfgz, vcfgz_out)
+      logger.info(call)
+      subprocess.check_call(call, shell=True)
 
-def vcf_filter_indels(vcfgz, indels, rmpos, vcfgz_out):
+def vcf_filter_indels(vcfgz, chr, indels, rmpos, o):
    '''Removes same-as-ref positions covered by indels'''
    
    if indels:
       paths = pipelinemod.setSystem()
-      gzcat_call = 'gzcat %s' % vcfgz
+      gzcat_call = '/usr/bin/gunzip -c %s' % vcfgz
       
       vcf_filter_cmd = 'python2.7 ' + paths['genobox_home'] + 'genobox_vcffilterindels.py'
       vcf_filter_arg = ' --indels %s --rmpos %s' % (indels, rmpos)
       vcf_filter_call = vcf_filter_cmd + vcf_filter_arg
       
-      bgzip_call = paths['bin_home'] + 'bgzip -c > %s' % vcfgz_out
+      bgzip_call = paths['bin_home'] + 'bgzip -c > %s' % o
       
       call = '%s | %s | %s' % (gzcat_call, vcf_filter_call, bgzip_call)
       logger.info(call)
       subprocess.check_call(call, shell=True)
    else:
-      call = 'cp %s %s' % (vcfgz, vcfgz_out)
+      call = 'cp %s %s' % (vcfgz, o)
       logger.info(call)
       subprocess.check_call(call, shell=True)
       
@@ -158,7 +195,7 @@ parser.add_argument('--log', help='log level [INFO]', default='info')
 
 # parse the command line
 args = parser.parse_args()
-#args = parser.parse_args('--i NA19238.all.bcf  --prefix NA19238 --chr gi|251831106|ref|NC_012920.1| --d 10 --D 1000000  --ex /panvol1/simon/databases/hs_ref37/gi2number.build37_rCRS --dbsnp /panvol1/simon/databases/dbsnp/dbsnp132_hg19.vcf.gz --rmsk /panvol1/simon/databases/hs_ref37_rCRS/rmsk/rmsk_build37_rCRS.number.MTonly.sort.genome --n chrMT --o NA19238.ref.chrMT.flt.ann.nr.vcf.gz --refonly --indels indels_for_filtering.number.vcf'.split())
+#args = parser.parse_args(' --bcf genotyping/abcalls.all.bcf --chr_id "gi|251831106|ref|NC_012920.1|" --chr chrMT --d 10 --D 50 --Q 40.000000 --ex /panvol1/simon/databases/hs_ref37_rCRS/gi2number.build37_rCRS --dbsnp /panvol1/simon/databases/dbsnp/dbsnp132_hg19.vcf.gz --rmsk /panvol1/simon/databases/hs_ref37_rCRS/rmsk/rmsk_build37_rCRS.number.sort.genome --indels genotyping/indels_for_filtering.number.vcf --o abcalls.chr22.ref.ann.vcf.gz'.split())
 
 logger = logging.getLogger('genobox.py')
 hdlr = logging.FileHandler('genobox.log')
@@ -170,8 +207,9 @@ if args.log == 'info':
 
 files = {}
 files['filterAll'] = 'genotyping/tmp.all.bcf.%s.flt.vcf.gz' % args.chr
-files['dbsnp_ann'] = 'genotyping/tmp.all.bcf.%s.flt.ann.vcf' % args.chr
-files['rmsk'] = 'genotyping/tmp.all.bcf.%s.flt.ann.nr.vcf' % args.chr
+files['dbsnp_ann'] = 'genotyping/tmp.all.bcf.%s.flt.ann.vcf.gz' % args.chr
+files['dbsnp_tbi'] = 'genotyping/tmp.all.bcf.%s.flt.ann.vcf.gz.tbi' % args.chr
+files['rmsk'] = 'genotyping/tmp.all.bcf.%s.flt.ann.nr.vcf.gz' % args.chr
 files['indel_filt'] = 'genotyping/tmp.indel_filtered.%s.vcf' % args.chr
 
 # vcf_filter_All
@@ -183,11 +221,16 @@ vcf_tabix(files['filterAll'])
 # dbsnp
 vcf_annotate_dbsnp(files['filterAll'], args.dbsnp, files['dbsnp_ann'])
 
-# filter rmsk (not using BEDtools)
-manual_rmsk_filter(files['dbsnp_ann'], args.rmsk, files['rmsk'])
+# rmsk filtering
+if args.chr.find('MT') > -1:
+   # if chromosome short name is chrMT or MT run manual filtering for MT only
+   manual_rmsk_filter(files['dbsnp_ann'], args.chr, args.rmsk, files['rmsk'])
+else:
+   # filter for rmsk using BEDtools
+   vcf_filter_rmsk(files['dbsnp_ann'], args.rmsk, files['rmsk'])
 
 # indel filter
-vcf_filter_indels(files['rmsk'] % args.chr, args.indels, files['indel_filt'], args.o)
+vcf_filter_indels(files['rmsk'], args.chr, args.indels, files['indel_filt'], args.o)
 
 # remove tmp files
 rm_files(files.values())
