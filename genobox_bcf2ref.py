@@ -11,7 +11,7 @@ def get_genome(chr_file):
       L.append(s)
    return L
 
-def start_bcf2ref(bcf, genome_file, Q, ex, dbsnp, rmsk, indels, o, queue, logger):
+def start_bcf2ref(bcf, genome_file, Q, ex, dbsnp, rmsk, indels, o, queue, dir, logger):
    '''Extract high confidence same-as-reference bases from bcf, options are to:
    
    exchange ids
@@ -43,7 +43,18 @@ def start_bcf2ref(bcf, genome_file, Q, ex, dbsnp, rmsk, indels, o, queue, logger
    bcf2ref_calls = []
    cmd = 'python2.7 ' + paths['genobox_home'] + 'genobox_bcf2ref_h.py'
    for chr in genome:
-      outfile = 'genotyping/' + o + '.' + chr[2] + '.ref.ann.vcf.gz'
+      # set outfile name
+      if len(genome) == 1:
+         if dir and dir != 'None':
+            outfile = '%s/%s.%s' % (os.path.split(o)[0], dir, os.path.split(o)[1])
+         else:
+            outfile = o
+      else:
+         if dir and dir != 'None':
+            outfile = '%s/%s.%s.%s' % (os.path.split(o)[0], dir, chr[2], os.path.split(o)[1])
+         else:
+            outfile = '%s/%s.%s' % (os.path.split(o)[0], chr[2], os.path.split(o)[1])
+      
       arg = ' --bcf %s --chr_id \"%s\" --chr %s --d %s --D %s --Q %f --ex %s --dbsnp %s --rmsk %s --indels %s --o %s' % (bcf, chr[0], chr[2], chr[4], chr[5], Q, ex, dbsnp, rmsk, indels, outfile)
       bcf2ref_calls.append(cmd+arg)
    

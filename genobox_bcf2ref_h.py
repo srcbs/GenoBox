@@ -20,7 +20,7 @@ def vcf_filterAll(bcf, chr_id, d, D, Q, ex, vcf_out_gz):
    bcf_call = bcf_cmd + bcf_arg
    
    vcf_filter_cmd = 'python2.7 ' + paths['genobox_home'] + 'genobox_vcffilterAll.py'
-   if ex:
+   if ex and ex != 'None':
       vcf_filter_arg = ' --d %i --D %i --Q %f --ex %s --refonly' % (d, D, Q, ex)
    else:
       vcf_filter_arg = ' --d %i --D %i --Q %f --refonly' % (d, D, Q)
@@ -45,7 +45,7 @@ def vcf_annotate_dbsnp(vcfgz, dbsnp, vcf_out_gz):
    
    paths = pipelinemod.setSystem()
    
-   if dbsnp:
+   if dbsnp and dbsnp != 'None':
       gunzip_call = '/usr/bin/gunzip -c %s' % vcfgz
       fill_call = paths['bin_home'] + 'fill-rsIDs -r %s | bgzip -c > %s' % (dbsnp, vcf_out_gz)
       
@@ -66,7 +66,7 @@ def vcf_filter_rmsk(vcfgz, rmsk, vcfgz_out):
    import pipelinemod
    
    paths = pipelinemod.setSystem()
-   if rmsk:
+   if rmsk and rmsk != 'None':
       # create header
       N = 10
       rand = ''.join(random.choice(string.ascii_uppercase + string.digits) for x in range(N))
@@ -120,7 +120,7 @@ def read_rmsk(rmsk, chr):
 def manual_rmsk_filter(vcfgz, chr, rmsk, vcfgz_out):
    '''Manually filter vcfgz using rmsk file'''
    
-   if rmsk:
+   if rmsk and rmsk != 'None':
       import gzip
       
       # get rmsk as dict
@@ -147,7 +147,7 @@ def manual_rmsk_filter(vcfgz, chr, rmsk, vcfgz_out):
 def vcf_filter_indels(vcfgz, chr, indels, rmpos, o):
    '''Removes same-as-ref positions covered by indels'''
    
-   if indels:
+   if indels and indels != 'None':
       paths = pipelinemod.setSystem()
       gzcat_call = '/usr/bin/gunzip -c %s' % vcfgz
       
@@ -164,15 +164,6 @@ def vcf_filter_indels(vcfgz, chr, indels, rmpos, o):
       call = 'cp %s %s' % (vcfgz, o)
       logger.info(call)
       subprocess.check_call(call, shell=True)
-      
-
-def rm_files(files):
-   '''Remove files'''
-   
-   call = 'rm %s' % ' '.join(files)
-   logger.info(call)
-   subprocess.check_call(call, shell=True)
-   
 
 # create the parser
 parser = argparse.ArgumentParser(description='''
@@ -207,8 +198,8 @@ if args.log == 'info':
 
 files = {}
 files['filterAll'] = 'genotyping/tmp.all.bcf.%s.flt.vcf.gz' % args.chr
+files['filterAll_tbi'] = 'genotyping/tmp.all.bcf.%s.flt.vcf.gz.tbi' % args.chr
 files['dbsnp_ann'] = 'genotyping/tmp.all.bcf.%s.flt.ann.vcf.gz' % args.chr
-files['dbsnp_tbi'] = 'genotyping/tmp.all.bcf.%s.flt.ann.vcf.gz.tbi' % args.chr
 files['rmsk'] = 'genotyping/tmp.all.bcf.%s.flt.ann.nr.vcf.gz' % args.chr
 files['indel_filt'] = 'genotyping/tmp.indel_filtered.%s.vcf' % args.chr
 
@@ -233,6 +224,6 @@ else:
 vcf_filter_indels(files['rmsk'], args.chr, args.indels, files['indel_filt'], args.o)
 
 # remove tmp files
-rm_files(files.values())
+pipelinemod.rm_files(files.values())
 
 

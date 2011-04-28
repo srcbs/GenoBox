@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-def start_vcffilter(bcf, genome, caller, Q, rmsk, ab, prune, o, queue, logger):
+def start_vcffilter(bcf, genome, caller, Q, rmsk, ab, prune, o, queue, dir, logger):
    '''Start variant vcf-filter
    
    Genome file must be given, format is a line for each chromosome:
@@ -32,7 +32,11 @@ def start_vcffilter(bcf, genome, caller, Q, rmsk, ab, prune, o, queue, logger):
    
    # create command
    cmd = 'python2.7 ' + paths['genobox_home'] + 'genobox_vcffilter_h.py'
-   arg = ' --bcf %s --genome %s --caller %s --Q %f --rmsk %s --ab %f --prune %i --o %s' % (bcf, genome, caller, Q, rmsk, ab, prune, o)
+   if dir and dir != 'None':
+      outfile = '%s/%s.%s' % (os.path.split(o)[0], dir, os.path.split(o)[1])
+   else:
+      outfile = o
+   arg = ' --bcf %s --genome %s --caller %s --Q %f --rmsk %s --ab %f --prune %i --o %s' % (bcf, genome, caller, Q, rmsk, ab, prune, outfile)
    vcffilter_calls = [cmd+arg]
    
    # submit jobs

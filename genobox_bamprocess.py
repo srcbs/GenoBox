@@ -148,22 +148,21 @@ def rmdup(infiles, tmpdir):
    
 
 def start_bamprocess(lib_file, bams, mapq, libs, tmpdir, queue, final_bam, logger):
-   '''Starts bam processing of input files
-      
-   filter for mapping quality
-   sort
-   merge to libraries
-   remove pcr duplicates
-   merge to final bam
+   '''Starts bam processing of input files'''
    
-   Input either:
-      input as bam, mapq and libs
-   OR
-      input as args.se, args.pe1, args.pe2 and mapq + libs
-   OR
-      a lib file: bam_file\tqual_threshold\tlib_name\n      
+   # Filter for mapping quality
+   # Sort
+   # Merge to libraries
+   # Remove pcr duplicates
+   # Merge to final bam
+   #
+   # Input either:
+   #    input as bam, mapq and libs
+   # OR
+   #    input as args.se, args.pe1, args.pe2 and mapq + libs
+   # OR
+   #    a lib file: bam_file\tqual_threshold\tlib_name\n      
    
-   '''
    
    import subprocess
    import pipelinemod
@@ -184,7 +183,6 @@ def start_bamprocess(lib_file, bams, mapq, libs, tmpdir, queue, final_bam, logge
    else:
       lib_file = make_lib_file(bams, mapq, libs)
       (bam2lib,lib2bam) = read_libs(lib_file)
-   
    
    ## CREATE CALLS ##
    

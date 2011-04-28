@@ -126,5 +126,8 @@ def start_genotyping(bam, chr, fa, prior, pp, queue, o, logger):
    pipelinemod.wait_semaphore(bcfindex_ids, home, 'genotyping', queue, 20, 2*86400)
    print "--------------------------------------"
    
+   # remove temporary files
+   pipelinemod.rm_files(bcffiles)
+   
    # return output bcf
    return o

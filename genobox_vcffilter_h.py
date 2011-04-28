@@ -180,7 +180,7 @@ def vcf_filter_prune(vcf, prune, vcf_out):
    
    if prune != 0:
       # create header
-      head_call = 'head -n 1000 %s | grep "#" > %s' % (vcf, 'header.vcf')
+      head_call = 'head -n 1000 %s | grep "#" > %s' % (vcf, 'genotyping/header.vcf')
       logger.info(head_call)
       subprocess.check_call(head_call, shell=True)
       
@@ -193,14 +193,14 @@ def vcf_filter_prune(vcf, prune, vcf_out):
       subprocess.check_call(prune_call, shell=True)
       
       # add header
-      header_call = 'cat header.vcf %s > %s' % (tmp_file, vcf_out)
+      header_call = 'cat genotyping/header.vcf %s > %s' % (tmp_file, vcf_out)
       logger.info(header_call)
       subprocess.check_call(header_call, shell=True)
       
       # rm tmp_files
-      #rm_call = 'rm %s header.vcf' % tmp_file
-      #logger.info(rm_call)
-      #subprocess.check_call(rm_call, shell=True)
+      rm_call = 'rm %s genotyping/header.vcf' % tmp_file
+      logger.info(rm_call)
+      subprocess.check_call(rm_call, shell=True)
    else:
       call = 'cp %s %s' % (vcf, vcf_out)
       logger.info(call)
@@ -269,3 +269,7 @@ vcf_filter_allelic_balance('genotyping/tmp.flt.all.rmsk.hetfilt.vcf', args.ab, a
 
 # pruning of nearby calls
 vcf_filter_prune('genotyping/tmp.flt.all.rmsk.hetfilt.abfilt.vcf', args.prune, args.o)
+
+# remove temporary files
+pipelinemod.rm_files(['genotyping/tmp.flt*'])
+

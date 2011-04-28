@@ -217,7 +217,7 @@ def start_alignment(se, pe1, pe2, bwaindex, alignpath, qtrim, a, r, n, queue, lo
    print "Waiting for jobs to finish ..." 
    pipelinemod.wait_semaphore(semaphore_ids, home, 'bwa_alignment', queue, 60, 86400)
    print "--------------------------------------"
-   
+      
    # return bamfiles   
    return bamfiles
    

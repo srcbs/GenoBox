@@ -10,6 +10,11 @@ def start_dbsnp(vcf, ex, dbsnp, o, queue, logger):
    import subprocess
    import os
    
+   if not dbsnp or dbsnp == 'None':
+      print "No dbsnp file given - skipping"
+      print "--------------------------------------"
+      return vcf
+   
    if not os.path.exists('genotyping'):
       os.makedirs('genotyping')
    
@@ -40,4 +45,5 @@ def start_dbsnp(vcf, ex, dbsnp, o, queue, logger):
    print "Waiting for jobs to finish ..."
    pipelinemod.wait_semaphore(dbsnp_ids, home, 'dbsnp', queue, 20, 2*86400)
    print "--------------------------------------"
-
+   
+   return o
