@@ -4,7 +4,7 @@ from __future__ import division
 
 import argparse
 import subprocess
-import pipelinemod
+import genobox_moab
 import os
 import logging
 
@@ -25,7 +25,7 @@ def get_genome(chr_file):
 def bcf2varfilter(bcf, genome, Q, vcf_prefix):
    '''Runs bcf through varfilter and writes to vcf'''
    
-   paths = pipelinemod.setSystem()
+   paths = genobox_moab.setSystem()
    bcf_cmd = paths['samtools_svn_home'] + 'bcftools view'
    calls = []
    vcf_files = []
@@ -176,7 +176,7 @@ def vcf_filter_allelic_balance(vcf, threshold, caller, vcf_out):
 def vcf_filter_prune(vcf, prune, vcf_out):
    '''Prune variants within N nt of each other'''
    
-   paths = pipelinemod.setSystem()
+   paths = genobox_moab.setSystem()
    
    if prune != 0:
       # create header
@@ -246,7 +246,7 @@ if args.log == 'info':
    logger.setLevel(logging.INFO)
 
 # set queuing
-paths = pipelinemod.setSystem()
+paths = genobox_moab.setSystem()
 home = os.getcwd()
 
 # get genome file
@@ -271,5 +271,5 @@ vcf_filter_allelic_balance('genotyping/tmp.flt.all.rmsk.hetfilt.vcf', args.ab, a
 vcf_filter_prune('genotyping/tmp.flt.all.rmsk.hetfilt.abfilt.vcf', args.prune, args.o)
 
 # remove temporary files
-pipelinemod.rm_files(['genotyping/tmp.flt*'])
+genobox_moab.rm_files(['genotyping/tmp.flt*'])
 

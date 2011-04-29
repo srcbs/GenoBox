@@ -2,7 +2,7 @@
 
 import argparse
 import subprocess
-import pipelinemod
+import genobox_moab
 import os
 import logging
 
@@ -36,7 +36,7 @@ if args.log == 'info':
    logger.setLevel(logging.INFO)
 
 # set paths
-paths = pipelinemod.setSystem()
+paths = genobox_moab.setSystem()
 home = os.getcwd()
 
 samcmd = paths['samtools_home']+'samtools'

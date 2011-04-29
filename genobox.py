@@ -13,7 +13,7 @@
 #  abgv              Run alignment, bamprocess, genotyping, vcf-filter, vcf-annotation and bcf2ref on input fastqs
 
 import argparse
-import pipelinemod
+import genobox_moab
 import subprocess
 import logging
 import os
@@ -155,10 +155,11 @@ parser_abgv.add_argument('--oref', help='output reference vcf-file [genotyping/\
 # parse args
 args = parser.parse_args()
 #args = parser.parse_args('alignment --se SRR002081se.recal.fastq SRR002082se.recal.fastq --pe1 SRR002137pe_1.recal.fastq SRR002138pe_1.recal.fastq --pe2 SRR002137pe_2.recal.fastq SRR002138pe_2.recal.fastq --bwaindex /panvol1/simon/databases/hs_ref37_rCRS/hs_ref_GRCh37_all.fa'.split(' '))
-#args = parser.parse_args('alignment --pe1 Kleb-10-213361_2_1_sequence.trim.fq --pe2 Kleb-10-213361_2_2_sequence.trim.fq --bwaindex kleb_pneu.fa --dir kleb_10_213361'.split(' '))
+#args = parser.parse_args('alignment --pe1 Kleb-10-213361_2_1_sequence.trim.fq --pe2 Kleb-10-213361_2_2_sequence.trim.fq --bwaindex kleb_pneu.fa --dir kleb_10_213361 --n 16'.split(' '))
+#args = parser.parse_args('alignment --se Kleb-10-213361_2_1_sequence.trim.fq --bwaindex kleb_pneu.fa --dir kleb_10_213361se --n 16'.split(' '))
 #args = parser.parse_args('bamprocess --bam alignment/SRR002081se.recal.fastq.bam alignment/SRR002082se.recal.fastq.bam alignment/SRR002137pe_1.recal.fastq.bam alignment/SRR002138pe_1.recal.fastq.bam --mapq 30 --libs libA'.split(' '))
 #args = parser.parse_args('bamprocess --bam alignment/Kleb-10-213361_2_1_sequence.trim.fq.bam --mapq 30 --outbam alignment/kleb_10_213361.flt.sort.rmdup.bam --n 16'.split(' '))
-#args = parser.parse_args('bamstats --bam alignment/Kleb-10-213361_2_1_sequence.trim.fq.bam --genome kleb_pneu.genome'.split(' '))
+#args = parser.parse_args('bamstats --bam alignment/kleb_10_213361.flt.sort.rmdup.bam --genome ../kleb_pneu.genome'.split(' '))
 #args = parser.parse_args('genotyping --bam alignment/kleb_10_213361.flt.sort.rmdup.bam --genome kleb_pneu.genome --fa ../kleb_pneu.fa --prior full --pp 0.01 --var --o genotyping/kleb_10_213361.bcf'.split(' '))
 #args = parser.parse_args('vcffilter --bcf genotyping/kleb_10_213361.bcf --Q 40 --prune 5 --ab 0.20 --genome kleb_pneu.genome --o genotyping/kleb_10_213361.vcf'.split(' '))
 #args = parser.parse_args('abgv --pe1 Kleb-10-213361_2_1_sequence.trim.fq --pe2 Kleb-10-213361_2_2_sequence.trim.fq --bwaindex kleb_pneu.fa --genome kleb_pneu.genome --ab 0.2 --prune 5 --dir kleb_10_213361'.split(' '))
@@ -188,7 +189,7 @@ if args.log == 'info':
 # start modules
 if args.module == 'alignment':
    from genobox_alignment import *
-   bamfiles = start_alignment(args.se, args.pe1, args.pe2, args.bwaindex, 'alignment/', args.qtrim, args.a, args.r, args.n, args.queue, logger)
+   bamfiles = start_alignment(args, logger)
 
 elif args.module == 'bamprocess':
    from genobox_bamprocess import *

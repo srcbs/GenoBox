@@ -5,12 +5,12 @@ import os
 import logging
 import re
 import subprocess
-import pipelinemod
+import genobox_moab
 
 def vcf_filterAll(bcf, chr_id, d, D, Q, ex, vcf_out_gz):
    '''Extracts bcf through genobox_vcffilterAll.py to vcf.gz'''
    
-   paths = pipelinemod.setSystem()
+   paths = genobox_moab.setSystem()
    
    bcf_cmd = paths['samtools_home'] + 'bcftools view'
    if chr_id:
@@ -34,7 +34,7 @@ def vcf_filterAll(bcf, chr_id, d, D, Q, ex, vcf_out_gz):
 def vcf_tabix(vcf_gz):
    '''Run tabix on vcf.gz'''
    
-   paths = pipelinemod.setSystem()
+   paths = genobox_moab.setSystem()
    
    tabix_call = paths['bin_home'] + 'tabix -p vcf -f %s' % (vcf_gz)
    logger.info(tabix_call)
@@ -43,7 +43,7 @@ def vcf_tabix(vcf_gz):
 def vcf_annotate_dbsnp(vcfgz, dbsnp, vcf_out_gz):
    '''Annotate vcf.gz with dbsnp'''
    
-   paths = pipelinemod.setSystem()
+   paths = genobox_moab.setSystem()
    
    if dbsnp and dbsnp != 'None':
       gunzip_call = '/usr/bin/gunzip -c %s' % vcfgz
@@ -63,9 +63,9 @@ def vcf_filter_rmsk(vcfgz, rmsk, vcfgz_out):
    
    import random
    import string
-   import pipelinemod
+   import genobox_moab
    
-   paths = pipelinemod.setSystem()
+   paths = genobox_moab.setSystem()
    if rmsk and rmsk != 'None':
       # create header
       N = 10
@@ -148,7 +148,7 @@ def vcf_filter_indels(vcfgz, chr, indels, rmpos, o):
    '''Removes same-as-ref positions covered by indels'''
    
    if indels and indels != 'None':
-      paths = pipelinemod.setSystem()
+      paths = genobox_moab.setSystem()
       gzcat_call = '/usr/bin/gunzip -c %s' % vcfgz
       
       vcf_filter_cmd = 'python2.7 ' + paths['genobox_home'] + 'genobox_vcffilterindels.py'
@@ -224,6 +224,6 @@ else:
 vcf_filter_indels(files['rmsk'], args.chr, args.indels, files['indel_filt'], args.o)
 
 # remove tmp files
-pipelinemod.rm_files(files.values())
+genobox_moab.rm_files(files.values())
 
 

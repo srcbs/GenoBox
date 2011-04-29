@@ -74,8 +74,8 @@ def make_lib_file(bams, q, lib):
 def bam_filter_sort(lib2bam, bam2lib, m=500000000):
    '''Filter bam on quality and sort on stream'''
    
-   import pipelinemod
-   paths = pipelinemod.setSystem()
+   import genobox_moab
+   paths = genobox_moab.setSystem()
    cmd = 'python2.7 ' + paths['genobox_home'] + 'genobox_samFilterSort.py'
    calls = []
    
@@ -97,8 +97,8 @@ def bam_filter_sort(lib2bam, bam2lib, m=500000000):
 def merge_bam(libs, lib_infiles, add_suffix=False, final_suffix=''):
    '''Merge bam files to libraries'''
    
-   import pipelinemod
-   paths = pipelinemod.setSystem()
+   import genobox_moab
+   paths = genobox_moab.setSystem()
    calls = []
    outfiles = []
    for i in range(len(libs)):
@@ -130,8 +130,8 @@ def merge_bam(libs, lib_infiles, add_suffix=False, final_suffix=''):
 def rmdup(infiles, tmpdir):
    '''Run rmdup on bam-files'''
    
-   import pipelinemod   
-   paths = pipelinemod.setSystem()
+   import genobox_moab   
+   paths = genobox_moab.setSystem()
    calls = []
    outfiles = []
    java_call = paths['java_home']+'java -jar '
@@ -165,11 +165,11 @@ def start_bamprocess(lib_file, bams, mapq, libs, tmpdir, queue, final_bam, logge
    
    
    import subprocess
-   import pipelinemod
+   import genobox_moab
    import os
    
    # set queueing
-   paths = pipelinemod.setSystem()
+   paths = genobox_moab.setSystem()
    home = os.getcwd()
    cpuA = 'nodes=1:ppn=1,mem=512mb'
    cpuC = 'nodes=1:ppn=1,mem=2gb'
@@ -202,20 +202,20 @@ def start_bamprocess(lib_file, bams, mapq, libs, tmpdir, queue, final_bam, logge
    ## SUBMIT JOBS ##
    
    print "Submitting jobs"
-   filter_sort_ids = pipelinemod.submitjob(filter_sort_calls, home, paths, logger, 'run_genobox_filtersort', queue, cpuC, False)
-   merge_lib_ids = pipelinemod.submitjob(merge_lib_calls, home, paths, logger, 'run_genobox_lib_merge', queue, cpuC, True, 'complex', map(len, lib2bam.values()), True, *filter_sort_ids)
-   rmdup_ids = pipelinemod.submitjob(rmdup_calls, home, paths, logger, 'run_genobox_rmdup', queue, cpuC, True, 'one2one', 1, True, *merge_lib_ids)
-   merge_final_ids = pipelinemod.submitjob(merge_final_call, home, paths, logger, 'run_genobox_final_merge', queue, cpuC, True, 'conc', len(rmdup_ids), True, *rmdup_ids)
+   filter_sort_ids = genobox_moab.submitjob(filter_sort_calls, home, paths, logger, 'run_genobox_filtersort', queue, cpuC, False)
+   merge_lib_ids = genobox_moab.submitjob(merge_lib_calls, home, paths, logger, 'run_genobox_lib_merge', queue, cpuC, True, 'complex', map(len, lib2bam.values()), True, *filter_sort_ids)
+   rmdup_ids = genobox_moab.submitjob(rmdup_calls, home, paths, logger, 'run_genobox_rmdup', queue, cpuC, True, 'one2one', 1, True, *merge_lib_ids)
+   merge_final_ids = genobox_moab.submitjob(merge_final_call, home, paths, logger, 'run_genobox_final_merge', queue, cpuC, True, 'conc', len(rmdup_ids), True, *rmdup_ids)
    
    
    # release jobs #
    allids = []
    allids.extend(filter_sort_ids) ; allids.extend(merge_lib_ids) ; allids.extend(rmdup_ids) ; allids.extend(merge_final_ids)
-   releasemsg = pipelinemod.releasejobs(allids)
+   releasemsg = genobox_moab.releasejobs(allids)
    
    # semaphore
    print "Waiting for jobs to finish ..." 
-   pipelinemod.wait_semaphore(merge_final_ids, home, 'bam_processing', queue, 20, 2*86400)
+   genobox_moab.wait_semaphore(merge_final_ids, home, 'bam_processing', queue, 20, 2*86400)
    print "--------------------------------------"
    
    # return final bamfile

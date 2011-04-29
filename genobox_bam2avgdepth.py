@@ -12,16 +12,14 @@ def average(values):
     return sum(values, 0.0) / len(values)
 
 
-parser = argparse.ArgumentParser(description=
-   '''Calculate average depth from bam file.
-   ''')
+parser = argparse.ArgumentParser(description='''Calculate average depth from bam file.''')
 
-# add the arguments
-parser.add_argument('--i', help='input bamfile')
+parser.add_argument('i', help='input bamfile')
 parser.add_argument('--log', help='log level [info]', default='info')
 
 args = parser.parse_args()
-#args = parser.parse_args('--i libA_hg19.sort.q30.bam.rmdup.bam'.split())
+#args = parser.parse_args('libA_hg19.sort.q30.bam.rmdup.bam'.split())
+#args = parser.parse_args('alignment/kleb_10_213361.flt.sort.rmdup.bam'.split())
 
 # set logging
 logger = logging.getLogger('genobox.py')
@@ -48,16 +46,16 @@ total_count = 0
 not_aligned = 0
 l = []
 d = defaultdict(lambda:0)
-iter = pysam.IteratorRowAll( samfile )
-for alignedRead in iter:
-   total_count += 1
-   if alignedRead.flag == 4L:
-      not_aligned +=1
-      continue
-   refname = samfile.getrname( alignedRead.rname )
-   d[refname] += alignedRead.rlen
-   lengths[refname].append(alignedRead.rlen)
-   l.append(alignedRead.rlen)
+with samfile as bam_file:
+   for alignedRead in bam_file:
+      total_count += 1
+      if alignedRead.flag == 4L:
+         not_aligned +=1
+         continue
+      refname = samfile.getrname( alignedRead.rname )
+      d[refname] += alignedRead.rlen
+      lengths[refname].append(alignedRead.rlen)
+      l.append(alignedRead.rlen)
 
 print 'Counted %i, with %i not aligned' % (total_count, not_aligned)
 logger.info('Counted %i, with %i not aligned' % (total_count, not_aligned))

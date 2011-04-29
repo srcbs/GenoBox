@@ -3,14 +3,14 @@
 def check_formats_fq(i):
    '''Checks format of fastq file and returns it'''
    
-   import pipelinemod
+   import genobox_moab
    
    # check if fastq and if so mode
-   format = pipelinemod.set_filetype(i)
+   format = genobox_moab.set_filetype(i)
    if format != 'fastq':
       raise ValueError('Input must be fastq')
    else:
-      fqtype = pipelinemod.set_fqtype(i)   
+      fqtype = genobox_moab.set_fqtype(i)   
    return fqtype
 
 def all_same(items):
@@ -22,9 +22,9 @@ def bwa_se_align(fastqs, bwaindex, fqtypes, qtrim, alignpath, r, threads, queue,
    '''Start alignment using bwa of fastq reads on index'''
    
    import subprocess
-   import pipelinemod
+   import genobox_moab
    import os
-   paths = pipelinemod.setSystem()
+   paths = genobox_moab.setSystem()
    home = os.getcwd()
    
    # setting cpus
@@ -51,46 +51,34 @@ def bwa_se_align(fastqs, bwaindex, fqtypes, qtrim, alignpath, r, threads, queue,
    
    # samse
    bwa_samse = []
-   samfiles = []
-   for i,fq in enumerate(fastqs):
-      f = os.path.split(fq)[1]
-      samfile = alignpath + f + '.sam'
-      samfiles.append(samfile)
-      call = '%sbwa samse -r %s %s %s %s > %s' % (paths['bwa_home'], r, bwaindex, saifiles[i], fq, samfile)
-      bwa_samse.append(call)
-   
-   # sam2bam
-   sam2bam_calls = []
    bamfiles = []
    for i,fq in enumerate(fastqs):
       f = os.path.split(fq)[1]
       bamfile = alignpath + f + '.bam'
       bamfiles.append(bamfile)
-      call = '%ssamtools view -bS -o %s %s' % (paths['samtools_home'], bamfiles[i], samfiles[i])
-      sam2bam_calls.append(call)
-   
+      call = '%sbwa samse -r %s %s %s %s | %ssamtools view -Sb - > %s' % (paths['bwa_home'], r, bwaindex, saifiles[i], fq, paths['samtools_home'], bamfile)
+      bwa_samse.append(call)
+      
    # submit jobs
    allids = []
    
-   bwa_alignids = pipelinemod.submitjob(bwa_align, home, paths, logger, 'run_genobox_bwaalign', queue, cpuB, False)
-   bwa_samseids = pipelinemod.submitjob(bwa_samse, home, paths, logger, 'run_genobox_bwasamse', queue, cpuA, True, 'one2one', 1, True, *bwa_alignids)
-   sam2bamids = pipelinemod.submitjob(sam2bam_calls, home, paths, logger, 'run_genobox_sam2bam', queue, cpuC, True, 'one2one', 1, True, *bwa_samseids)
+   bwa_alignids = genobox_moab.submitjob(bwa_align, home, paths, logger, 'run_genobox_bwaalign', queue, cpuB, False)
+   bwa_samseids = genobox_moab.submitjob(bwa_samse, home, paths, logger, 'run_genobox_bwasamse', queue, cpuA, True, 'one2one', 1, True, *bwa_alignids)
    
-   allids.extend(bwa_alignids) ; allids.extend(bwa_samseids) ; allids.extend(sam2bamids)
+   allids.extend(bwa_alignids) ; allids.extend(bwa_samseids)
    
    # release jobs
-   releasemsg = pipelinemod.releasejobs(allids)
+   releasemsg = genobox_moab.releasejobs(allids)
    
-   return (sam2bamids, bamfiles)
-
+   return (bwa_samseids, bamfiles)
 
 def bwa_pe_align(pe1, pe2, bwaindex, fqtypes_pe1, fqtypes_pe2, qtrim, alignpath, a, r, threads, queue, logger):
    '''Start alignment using bwa of paired end fastq reads on index'''
    
    import subprocess
-   import pipelinemod
+   import genobox_moab
    import os
-   paths = pipelinemod.setSystem()
+   paths = genobox_moab.setSystem()
    home = os.getcwd()
    
    # setting cpus
@@ -111,7 +99,6 @@ def bwa_pe_align(pe1, pe2, bwaindex, fqtypes_pe1, fqtypes_pe2, qtrim, alignpath,
    
    saifiles1 = []
    saifiles2 = []
-   samfiles = []
    bamfiles = []
    
    for i,fq in enumerate(pe1):
@@ -132,28 +119,21 @@ def bwa_pe_align(pe1, pe2, bwaindex, fqtypes_pe1, fqtypes_pe2, qtrim, alignpath,
       saifile2 = alignpath + f2 + '.sai'
       saifiles1.append(saifile1)
       saifiles2.append(saifile2)
-      samfiles.append(alignpath + f1 + '.sam')
+      bamfiles.append(alignpath + f1 + '.bam')
       
       # generate calls
       bwa_align1 = '%s -t %s -q %i %s -f %s %s ' % (bwa_cmd, threads, qtrim, bwaindex, saifiles1[i], pe1[i])
       bwa_align2 = '%s -t %s -q %i %s -f %s %s ' % (bwa_cmd, threads, qtrim, bwaindex, saifiles2[i], pe2[i])
-      sampecall = '%sbwa sampe -a %i -r %s %s -f %s %s %s %s %s ' % (paths['bwa_home'], a, r, bwaindex, samfiles[i], saifiles1[i], saifiles2[i], pe1[i], pe2[i])
+      sampecall = '%sbwa sampe -a %i -r %s %s %s %s %s %s | %ssamtools view -Sb - > %s' % (paths['bwa_home'], a, r, bwaindex, saifiles1[i], saifiles2[i], pe1[i], pe2[i], paths['samtools_home'], bamfiles[i])
       bwa_align1_calls.append(bwa_align1)
       bwa_align2_calls.append(bwa_align2)
       bwa_sampe_calls.append(sampecall)
       
-      
-      # sam2bam
-      bamfile = alignpath + f1 + '.bam'
-      bamfiles.append(bamfile)
-      call = '%ssamtools view -bS -o %s %s' % (paths['samtools_home'], bamfiles[i], samfiles[i])
-      sam2bam_calls.append(call)
-   
    
    # submit jobs
    allids = []
-   bwa_alignids1 = pipelinemod.submitjob(bwa_align1_calls, home, paths, logger, 'run_genobox_bwaalign1', queue, cpuB, False)
-   bwa_alignids2 = pipelinemod.submitjob(bwa_align2_calls, home, paths, logger, 'run_genobox_bwaalign2', queue, cpuB, False)
+   bwa_alignids1 = genobox_moab.submitjob(bwa_align1_calls, home, paths, logger, 'run_genobox_bwaalign1', queue, cpuB, False)
+   bwa_alignids2 = genobox_moab.submitjob(bwa_align2_calls, home, paths, logger, 'run_genobox_bwaalign2', queue, cpuB, False)
    
    # set jobids in the correct way
    bwa_alignids = []
@@ -161,63 +141,61 @@ def bwa_pe_align(pe1, pe2, bwaindex, fqtypes_pe1, fqtypes_pe2, qtrim, alignpath,
       bwa_alignids.append(bwa_alignids1[i])
       bwa_alignids.append(bwa_alignids2[i])
    
-   # submit sam2bam
-   bwa_samseids = pipelinemod.submitjob(bwa_sampe_calls, home, paths, logger, 'run_genobox_bwasampe', queue, cpuA, True, 'conc', len(bwa_alignids), True, *bwa_alignids)
-   sam2bamids = pipelinemod.submitjob(sam2bam_calls, home, paths, logger, 'run_genobox_sam2bam', queue, cpuC, True, 'one2one', 1, True, *bwa_samseids)
+   # submit sampe
+   bwa_sampeids = genobox_moab.submitjob(bwa_sampe_calls, home, paths, logger, 'run_genobox_bwasampe', queue, cpuA, True, 'conc', len(bwa_alignids), True, *bwa_alignids)
    
    # release jobs
-   allids.extend(bwa_alignids) ; allids.extend(bwa_samseids) ; allids.extend(sam2bamids)
-   releasemsg = pipelinemod.releasejobs(allids)
+   allids.extend(bwa_alignids) ; allids.extend(bwa_sampeids)
+   releasemsg = genobox_moab.releasejobs(allids)
    
-   return (sam2bamids, bamfiles)
+   return (bwa_sampeids, bamfiles)
    
 
-def start_alignment(se, pe1, pe2, bwaindex, alignpath, qtrim, a, r, n, queue, logger):
+def start_alignment(args, logger):
    '''Start alignment of fastq files using BWA'''
    
-   import pipelinemod
+   import genobox_moab
    import subprocess
    import os
-   paths = pipelinemod.setSystem()
+   paths = genobox_moab.setSystem()
    home = os.getcwd()
    semaphore_ids = []
    bamfiles = []
    
-   if not os.path.exists(alignpath):
-      os.makedirs(alignpath)
+   if not os.path.exists('alignment'):
+      os.makedirs('alignment')
    
    # start single end alignments
-   if se:
+   if args.se:
       
       # set fqtypes
-      fqtypes_se = map(check_formats_fq, se)
+      fqtypes_se = map(check_formats_fq, args.se)
       print "Submitting single end alignments"
-      (se_align_ids, bamfiles_se) = bwa_se_align(se, bwaindex, fqtypes_se, qtrim, alignpath, r, n, queue, logger)
+      (se_align_ids, bamfiles_se) = bwa_se_align(args.se, args.bwaindex, fqtypes_se, args.qtrim, 'alignment/', args.r, args.n, args.queue, logger)
       semaphore_ids.extend(se_align_ids)
       bamfiles.extend(bamfiles_se)
       
    # start paired end alignments
-   if pe1:
-      if len(pe1) != len(pe2):
+   if args.pe1:
+      if len(args.pe1) != len(args.pe2):
          raise ValueError('Same number of files must be given to --pe1 and --pe2')
             
       # set fqtypes
       fqtypes_pe = []
-      fqtypes_pe1 = map(check_formats_fq, pe1)
-      fqtypes_pe2 = map(check_formats_fq, pe2)
+      fqtypes_pe1 = map(check_formats_fq, args.pe1)
+      fqtypes_pe2 = map(check_formats_fq, args.pe2)
       fqtypes_pe.extend(fqtypes_pe1)
       fqtypes_pe.extend(fqtypes_pe2)
       
       print "Submitting paired end alignments"
-      (pe_align_ids, bamfiles_pe) = bwa_pe_align(pe1, pe2, bwaindex, fqtypes_pe1, fqtypes_pe2, qtrim, alignpath, a, r, n, queue, logger)            
+      (pe_align_ids, bamfiles_pe) = bwa_pe_align(args.pe1, args.pe2, args.bwaindex, fqtypes_pe1, fqtypes_pe2, args.qtrim, 'alignment/', args.a, args.r, args.n, args.queue, logger)            
       semaphore_ids.extend(pe_align_ids)
       bamfiles.extend(bamfiles_pe)
    
    # wait for jobs to finish
    print "Waiting for jobs to finish ..." 
-   pipelinemod.wait_semaphore(semaphore_ids, home, 'bwa_alignment', queue, 60, 86400)
+   genobox_moab.wait_semaphore(semaphore_ids, home, 'bwa_alignment', args.queue, 60, 86400)
    print "--------------------------------------"
       
    # return bamfiles   
    return bamfiles
-   

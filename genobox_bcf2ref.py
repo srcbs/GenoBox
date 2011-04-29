@@ -20,7 +20,7 @@ def start_bcf2ref(bcf, genome_file, Q, ex, dbsnp, rmsk, indels, o, queue, dir, l
    filter ambiguous indel positions
    '''
    
-   import pipelinemod
+   import genobox_moab
    import subprocess
    import os
    
@@ -28,7 +28,7 @@ def start_bcf2ref(bcf, genome_file, Q, ex, dbsnp, rmsk, indels, o, queue, dir, l
       os.makedirs('genotyping')
    
    # set queueing
-   paths = pipelinemod.setSystem()
+   paths = genobox_moab.setSystem()
    home = os.getcwd()
    cpuA = 'nodes=1:ppn=1,mem=512mb'
    cpuC = 'nodes=1:ppn=1,mem=2gb'
@@ -60,14 +60,14 @@ def start_bcf2ref(bcf, genome_file, Q, ex, dbsnp, rmsk, indels, o, queue, dir, l
    
    # submit jobs
    print "Submitting jobs"
-   bcf2ref_ids = pipelinemod.submitjob(bcf2ref_calls, home, paths, logger, 'run_genobox_bcf2ref', queue, cpuE, False)
+   bcf2ref_ids = genobox_moab.submitjob(bcf2ref_calls, home, paths, logger, 'run_genobox_bcf2ref', queue, cpuE, False)
    
    # release jobs #
    allids = []
    allids.extend(bcf2ref_ids)
-   releasemsg = pipelinemod.releasejobs(allids)
+   releasemsg = genobox_moab.releasejobs(allids)
    
    # semaphore
    print "Waiting for jobs to finish ..."
-   pipelinemod.wait_semaphore(bcf2ref_ids, home, 'bcf2ref', queue, 20, 2*86400)
+   genobox_moab.wait_semaphore(bcf2ref_ids, home, 'bcf2ref', queue, 20, 2*86400)
    print "--------------------------------------"

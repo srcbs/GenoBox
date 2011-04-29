@@ -3,9 +3,9 @@
 def bam_index(bam):
    '''Index bam-file'''
    
-   import pipelinemod
+   import genobox_moab
    import os.path
-   paths = pipelinemod.setSystem()
+   paths = genobox_moab.setSystem()
    
    # skip index creation if it already exists
    calls = []
@@ -30,10 +30,10 @@ def get_genome(chr_file):
 def mpileup(bam, chr_file, fa, prior, pp):
    '''Perform SNP calling on bam-file using samtools'''
    
-   import pipelinemod
+   import genobox_moab
    import os
    
-   paths = pipelinemod.setSystem()
+   paths = genobox_moab.setSystem()
    cmd = 'python2.7 ' + paths['genobox_home'] + 'genobox_mpileup.py'
    calls = []
    outfiles = []
@@ -57,8 +57,8 @@ def mpileup(bam, chr_file, fa, prior, pp):
 def bcf_combine(bcfs, outfile):
    '''Concatenate bcfs to a single bcf '''
    
-   import pipelinemod
-   paths = pipelinemod.setSystem()
+   import genobox_moab
+   paths = genobox_moab.setSystem()
    
    calls = []
    cmd = paths['samtools_home'] + 'bcftools'
@@ -69,8 +69,8 @@ def bcf_combine(bcfs, outfile):
 def bcf_index(bcf):
    '''Index bcf file'''
    
-   import pipelinemod
-   paths = pipelinemod.setSystem()
+   import genobox_moab
+   paths = genobox_moab.setSystem()
    
    calls = []
    cmd = paths['samtools_home'] + 'bcftools'
@@ -82,14 +82,14 @@ def start_genotyping(bam, chr, fa, prior, pp, queue, o, logger):
    '''Starts genotyping using samtools of input bam file'''
    
    import subprocess
-   import pipelinemod
+   import genobox_moab
    import os
    
    if not os.path.exists('genotyping'):
       os.makedirs('genotyping')
    
    # set queueing
-   paths = pipelinemod.setSystem()
+   paths = genobox_moab.setSystem()
    home = os.getcwd()
    cpuA = 'nodes=1:ppn=1,mem=512mb'
    cpuC = 'nodes=1:ppn=1,mem=2gb'
@@ -111,23 +111,23 @@ def start_genotyping(bam, chr, fa, prior, pp, queue, o, logger):
    
    # submit jobs #
    print "Submitting jobs"
-   bamindex_ids = pipelinemod.submitjob(bamindex_calls, home, paths, logger, 'run_genobox_bamindex', queue, cpuC, False)
-   mpileup_ids = pipelinemod.submitjob(mpileup_calls, home, paths, logger, 'run_genobox_mpileup', queue, cpuF, True, 'expand', len(mpileup_calls), True, *bamindex_ids)
-   bcfcombine_ids = pipelinemod.submitjob(bcfcombine_calls, home, paths, logger, 'run_genobox_bcfcombine', queue, cpuC, True, 'conc', len(mpileup_calls), True, *mpileup_ids)
-   bcfindex_ids = pipelinemod.submitjob(bcfindex_calls, home, paths, logger, 'run_genobox_bcfindex', queue, cpuC, True, 'one2one', 1, True, *bcfcombine_ids)
+   bamindex_ids = genobox_moab.submitjob(bamindex_calls, home, paths, logger, 'run_genobox_bamindex', queue, cpuC, False)
+   mpileup_ids = genobox_moab.submitjob(mpileup_calls, home, paths, logger, 'run_genobox_mpileup', queue, cpuF, True, 'expand', len(mpileup_calls), True, *bamindex_ids)
+   bcfcombine_ids = genobox_moab.submitjob(bcfcombine_calls, home, paths, logger, 'run_genobox_bcfcombine', queue, cpuC, True, 'conc', len(mpileup_calls), True, *mpileup_ids)
+   bcfindex_ids = genobox_moab.submitjob(bcfindex_calls, home, paths, logger, 'run_genobox_bcfindex', queue, cpuC, True, 'one2one', 1, True, *bcfcombine_ids)
    
    # release jobs #
    allids = []
    allids.extend(bamindex_ids) ; allids.extend(mpileup_ids) ; allids.extend(bcfcombine_ids) ; allids.extend(bcfindex_ids)
-   releasemsg = pipelinemod.releasejobs(allids)
+   releasemsg = genobox_moab.releasejobs(allids)
    
    # semaphore
    print "Waiting for jobs to finish ..."
-   pipelinemod.wait_semaphore(bcfindex_ids, home, 'genotyping', queue, 20, 2*86400)
+   genobox_moab.wait_semaphore(bcfindex_ids, home, 'genotyping', queue, 20, 2*86400)
    print "--------------------------------------"
    
    # remove temporary files
-   pipelinemod.rm_files(bcffiles)
+   genobox_moab.rm_files(bcffiles)
    
    # return output bcf
    return o
