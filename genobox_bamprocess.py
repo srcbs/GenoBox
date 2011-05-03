@@ -1,75 +1,5 @@
 #!/usr/bin/python
 
-# read library file 
-def read_libs(lib_file):
-   '''Read library file and return dict.
-   Reads lib file should contain (one line pr. bamfile):
-   bam_file\tqual_threshold\tlib_name\n
-   '''
-   
-   from collections import defaultdict
-   
-   fh = open(lib_file, 'r')
-   bam2lib = {}
-   lib2bam = defaultdict(list)
-   for line in fh:
-      if line.startswith('#'):
-         continue
-      
-      line = line.rstrip()
-      fields = line.split('\t')
-      bam2lib[fields[0]] = (fields[1], fields[2])
-      
-      lib2bam[fields[2]].append(fields[0])
-   return (bam2lib, lib2bam)
-
-#def make_lib_file(se, pe1, pe2, bams, q, lib):
-#   '''Create lib_file from input paramters'''
-#   
-#   import os
-#   
-#   fh = open('libs', 'w')
-#   if se:
-#      se = map(os.path.abspath, se)
-#      for i,fq in enumerate(se):
-#         fh.write('%s\t%i\t%s\n' % ('alignment/' + os.path.split(se[i])[1] +'.bam', q[i], 'alignment/' + lib[i]))
-#   if pe1:
-#      pe1 = map(os.path.abspath, pe1)
-#      for i,fq in enumerate(pe1):
-#         fh.write('%s\t%i\t%s\n' % ('alignment/' + os.path.split(pe1[i])[1] +'.bam', q[i], 'alignment/' + lib[i]))
-#   if bams:
-#      bams = map(os.path.abspath, bams)
-#      for i, bam in enumerate(bams):
-#         fh.write('%s\t%i\t%s\n' % ('alignment/' + os.path.split(bam)[1], q[i], 'alignment/' + lib[i]))
-#   fh.close()
-#   return 'libs'
-
-def make_lib_file(bams, q, lib):
-   '''Create lib_file from input paramters'''
-   
-   import os
-   import sys
-   
-   fh = open('libs', 'w')
-   bams = map(os.path.abspath, bams)
-   
-   # check if shorter arguments is passed to q or lib
-   # if so the first argument is reused
-   if len(q) < len(bams):
-      sys.stderr.write("warning: length of mapq is shorter than length of bamfiles, reusing %i\n" % q[0])   
-      while len(q) < len(bams):
-         q.append(q[0])
-   if len(lib) < len(bams):
-      sys.stderr.write("warning: length of lib names is shorter than length of bamfiles, reusing %s\n" % lib[0])   
-      while len(lib) < len(bams):
-         lib.append(lib[0])
-   # create library file
-   for i, bam in enumerate(bams):
-      fh.write('%s\t%i\t%s\n' % ('alignment/' + os.path.split(bam)[1], q[i], 'alignment/' + lib[i]))
-   fh.close()
-   return 'libs'
-
-
 # filter bam and sort
 def bam_filter_sort(lib2bam, bam2lib, m=500000000):
    '''Filter bam on quality and sort on stream'''
@@ -84,8 +14,8 @@ def bam_filter_sort(lib2bam, bam2lib, m=500000000):
    
    calls = []
    outfiles = []
-   for lib_files in infiles:
-      for f in lib_files:
+   for libfiles in infiles:
+      for f in libfiles:
          sort_prefix = f + '.flt.sort'
          out_bam = f + '.flt.sort.bam'
          outfiles.append(out_bam)
@@ -147,7 +77,14 @@ def rmdup(infiles, tmpdir):
    return (calls, outfiles)
    
 
-def start_bamprocess(lib_file, bams, mapq, libs, tmpdir, queue, final_bam, logger):
+#test
+#libfile = 'libs.NA12891.txt'
+#bams = ['alignment/SRR002081se.recal.fastq.bam', 'alignment/SRR002082se.recal.fastq.bam', 'alignment/SRR002137pe_1.recal.fastq.bam', 'alignment/SRR002138pe_1.recal.fastq.bam']
+#mapq = [30]
+#libs = ['lib']
+#final_bam = 'alignment/NA12891.flt.sort.rmdup.bam'
+
+def start_bamprocess(libfile, bams, mapq, libs, tmpdir, queue, final_bam, sample, logger):
    '''Starts bam processing of input files'''
    
    # Filter for mapping quality
@@ -159,13 +96,12 @@ def start_bamprocess(lib_file, bams, mapq, libs, tmpdir, queue, final_bam, logge
    # Input either:
    #    input as bam, mapq and libs
    # OR
-   #    input as args.se, args.pe1, args.pe2 and mapq + libs
-   # OR
    #    a lib file: bam_file\tqual_threshold\tlib_name\n      
    
    
    import subprocess
    import genobox_moab
+   import genobox_modules
    import os
    
    # set queueing
@@ -177,12 +113,10 @@ def start_bamprocess(lib_file, bams, mapq, libs, tmpdir, queue, final_bam, logge
    cpuF = 'nodes=1:ppn=2,mem=2gb'
    cpuB = 'nodes=1:ppn=16,mem=10gb'
    
-   # create lib_file if not given
-   if lib_file:
-      (bam2lib,lib2bam) = read_libs(lib_file)
-   else:
-      lib_file = make_lib_file(bams, mapq, libs)
-      (bam2lib,lib2bam) = read_libs(lib_file)
+   # create libfile if not given
+   if not libfile:
+      libfile = genobox_modules.library_from_input(bams, sample, mapq, libs)
+   (bam2lib,lib2bam) = genobox_modules.read_bam_libs(libfile)
    
    ## CREATE CALLS ##
    
@@ -190,10 +124,10 @@ def start_bamprocess(lib_file, bams, mapq, libs, tmpdir, queue, final_bam, logge
    (filter_sort_calls, filter_sort_files) = bam_filter_sort(lib2bam, bam2lib, 1500000000)
    
    # merge to libs
-   (merge_lib_calls, lib_files) = merge_bam(lib2bam.keys(), lib2bam.values(), add_suffix=True, final_suffix='.flt.sort.bam')
+   (merge_lib_calls, libfiles) = merge_bam(lib2bam.keys(), lib2bam.values(), add_suffix=True, final_suffix='.flt.sort.bam')
    
    # rmdup on libs
-   (rmdup_calls, rmdup_files) = rmdup(lib_files, tmpdir)
+   (rmdup_calls, rmdup_files) = rmdup(libfiles, tmpdir)
    
    # merge to final file
    (merge_final_call, final_file) = merge_bam([final_bam], [rmdup_files], add_suffix=False)

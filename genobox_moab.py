@@ -211,6 +211,9 @@ def submit_wrapcmd(calls, home, paths, logger, runname, queue, cpu, depend, hold
       rand = ''.join(random.choice(string.ascii_uppercase + string.digits) for x in range(N))
       filename = 'pbsjob.tmp%s' % rand
       
+      stdout = '%s/log/%s%i.o' % (home, runname, i)
+      stderr = '%s/log/%s%i.e' % (home, runname, i)
+      
       # write pbsjob file
       fh = open(filename, 'w')
       fh.write('#!/bin/sh\n\n')
@@ -222,9 +225,9 @@ def submit_wrapcmd(calls, home, paths, logger, runname, queue, cpu, depend, hold
       if hold:
          cmd = '%s -h' % cmd
       if not depend:
-         msub = '%s -d %s -l %s,walltime=172800 -q %s -r y -N %s %s' % (cmd, home, cpu, queue, runname, filename)
+         msub = '%s -d %s -l %s,walltime=172800 -o %s -e %s -q %s -r y -N %s %s' % (cmd, home, cpu, stdout, stderr, queue, runname, filename)
       else:
-         msub = '%s -d %s -l %s,walltime=172800,depend=%s -q %s -r y -N %s %s' % (cmd, home, cpu, depends[i], queue, runname, filename)
+         msub = '%s -d %s -l %s,walltime=172800,depend=%s -o %s -e %s -q %s -r y -N %s %s' % (cmd, home, cpu, depends[i], stdout, stderr, queue, runname, filename)
       
       time.sleep(0.1)
       logger.info(msub)
@@ -236,7 +239,10 @@ def submit_wrapcmd(calls, home, paths, logger, runname, queue, cpu, depend, hold
          print 'Job error, waiting 1m'
          time.sleep(60)
          id = subprocess.check_output(xmsub, shell=True)
-      ids.append(id.split('\n')[1])   
+      ids.append(id.split('\n')[1])
+      
+      # remove pbsjob file
+      #rm_files([filename])
    return ids
 
 
@@ -292,10 +298,6 @@ def submitdummy(home, paths, logger, jobids, queue='cbs'):
    return lastjobid
 
 
-
-
-
-
 ##############################
 
 ###      SEMAPHORE       ###
@@ -340,61 +342,10 @@ def wait_semaphore(semaphore_ids, home, file_prefix, queue, check_interval, max_
 
 ##################################
 
-###      FASTQ DETECTION       ###
-
-##################################
-
-def set_filetype(f):
-   '''Detects filetype from fa, fq and sff input file'''
-   
-   inhandle = open(f, "r")
-   line = inhandle.readline()
-   if line.startswith(">"):
-      out = 'fasta'
-   elif line.startswith("@"):
-      out = 'fastq'
-   else:
-      inhandle = open(f, "rb")
-      line = inhandle.readline()
-      if line.startswith(".sff"):
-         out = 'sff'
-      else:
-         raise ValueError('Input must be fasta, fastq or sff')
-   
-   return out
-
-def set_fqtype(f):
-   '''Detects sanger or illumina format from fastq'''
-   
-   # Open fastq, convert ASCII to number, check if number is above or below certain thresholds to determine format
-   
-   from Bio.SeqIO.QualityIO import FastqGeneralIterator
-   
-   type = 'not determined'
-   inhandle = open(f, 'r')
-   for (title, sequence, quality) in FastqGeneralIterator(inhandle):
-      qs = map(ord, quality)
-      for q in qs:
-         if q > 73:
-            type = 'Illumina'
-            break
-         elif q < 59:
-            type = 'Sanger'
-            break
-      if type != 'not determined':
-         break
-   
-   if type == 'not determined':
-      raise ValueError('Fastq format not identified, are you sure it is sanger/illumina?')
-   else:
-      return type
-
-
-##################################
-
 ###      FILE OPERATIONS       ###
 
 ##################################
+
 
 def rm_files(patterns):
    '''Remove files using glob given as list of patterns'''
@@ -409,93 +360,6 @@ def rm_files(patterns):
       else:
          map(os.remove, files)
 
-
-
-##################################
-
-###         DEPRECATED         ###
-
-##################################
-
-
-
-def createbatches(allcalls={}, b=80, inp=0, n=16):
-   '''Divides calls into batches of containing b inputfiles. 
-      Takes hash of calls and corresponding calls as input and
-      returns a list of hashes containing the calls. inp is 
-      the number of inputfiles, n = args.n (number of cpus)'''
-   
-   batches = []
-   runcalls = {}
-   for key in allcalls.keys():
-      runcalls[key] = []
-   
-   # if nr of inputfiles is shorter than batch determinant return all as one batch
-   if inp <= b:
-      for key in allcalls.keys():
-         runcalls[key] = allcalls[key]
-      batches.append(runcalls)
-      return(batches)
-   else:
-      # else divide into batches
-      # (i*int(args.n)):((i+1)*int(args.n)) index for blastcalls, if args.n=16:  0:15, 16:31, 32:47 etc
-      s = 0
-      e = b
-      last = False
-      while e <= inp:
-         # initialize hash
-         runcalls = {}
-         for key in allcalls.keys():
-            runcalls[key] = []
-         
-         # fill in hash with calls for this batch
-         L = range(inp)
-         for i in L[s:e]:
-            #print 's:%i e:%i i:%i' % (s,e,i)
-            #print 'first %i, second %i' % ( (i*int(n)), ((i+1)*int(n)) )
-            for key in allcalls.keys():
-               if key == 'blast':
-                  runcalls[key].extend(allcalls[key][(i*int(n)):((i+1)*int(n))])
-               elif key == 'clean':
-                  runcalls[key].append(allcalls[key][0])
-               else:
-                  runcalls[key].append(allcalls[key][i])
-         if last:
-            break
-         else:
-            batches.append(runcalls)
-            s = e
-            e = e + b
-            if e > inp:
-               e = inp
-               last = True
-   return(batches)
-
-def makefilesets(allfiles=[], b=80):
-   '''Divide input files into batches.
-      b = nr files in a batch. '''
-   
-   filesets = []
-   # if all can be contained in one batchrun
-   if len(allfiles) <= b:
-      filesets = allfiles
-   else:
-      filesets = []
-      L = range(len(allfiles))
-      s = 0
-      e = b
-      last = False
-      while e <= len(allfiles):
-         filesets.append(allfiles[s:e])
-         s = e
-         e = e + b
-         if last:
-            break
-         if e > len(allfiles):
-            e = len(allfiles)
-            last = True
-   
-   return(filesets)
 
 
 

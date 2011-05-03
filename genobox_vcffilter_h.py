@@ -171,9 +171,8 @@ def vcf_filter_allelic_balance(vcf, threshold, caller, vcf_out):
       call = 'cp %s %s' % (vcf, vcf_out)
       logger.info(call)
       subprocess.check_call(call)
-      
-   
-def vcf_filter_prune(vcf, prune, vcf_out):
+
+def vcf_filter_prune(vcf, prune, vcfgz_out):
    '''Prune variants within N nt of each other'''
    
    paths = genobox_moab.setSystem()
@@ -185,7 +184,7 @@ def vcf_filter_prune(vcf, prune, vcf_out):
       subprocess.check_call(head_call, shell=True)
       
       tmp_file = vcf + '.tmp'
-      prune_script = paths['pyscripts_home'] + 'saqqaq_snppruning.R'
+      prune_script = paths['genobox_home'] + 'genobox_snppruning.R'
       prune_cmd = paths['R_home'] + 'R-2.12'
       prune_arg = ' --vanilla %i %s %s < %s' % (prune, vcf, tmp_file, prune_script)
       prune_call = prune_cmd + prune_arg
@@ -193,7 +192,7 @@ def vcf_filter_prune(vcf, prune, vcf_out):
       subprocess.check_call(prune_call, shell=True)
       
       # add header
-      header_call = 'cat genotyping/header.vcf %s > %s' % (tmp_file, vcf_out)
+      header_call = 'cat genotyping/header.vcf %s | %sbgzip -c > %s' % (tmp_file, paths['bin_home'], vcfgz_out)
       logger.info(header_call)
       subprocess.check_call(header_call, shell=True)
       
@@ -202,9 +201,27 @@ def vcf_filter_prune(vcf, prune, vcf_out):
       logger.info(rm_call)
       subprocess.check_call(rm_call, shell=True)
    else:
-      call = 'cp %s %s' % (vcf, vcf_out)
+      call = '%sbgzip -c %s > %s' % (paths['bin_home'] + vcf, vcfgz_out)
       logger.info(call)
-      subprocess.check_call(call)
+      subprocess.check_call(call, shell=True)
+
+def write_indels_for_filtering(vcf, ex):
+   '''Extracts positions that should not be high confidence because they are deletions (not removed in vcf-file)'''
+   
+   import genobox_moab
+   import subprocess
+   
+   paths = genobox_moab.setSystem()
+   
+   # extracting header and indels using perl oneliner
+   if not ex or ex == 'None':
+      call = '''gzip -dc %s | perl -ne 'if ($_ =~ m/^#/) { print $_ } else { if ($_ =~ INDEL) { print $_ }}' > genotyping/indels_for_filtering.vcf ''' % (vcf)
+   else:
+      ex_call = 'python2.7 %sgenobox_exchangeids.py --b %s' % (paths['genobox_home'], ex)
+      call = '''gzip -dc %s | perl -ne 'if ($_ =~ m/^#/) { print $_ } else { if ($_ =~ INDEL) { print $_ }}' | %s > genotyping/indels_for_filtering.vcf ''' % (vcf, ex_call)
+   
+   logger.info(call)
+   subprocess.check_call(call, shell=True)
 
 # create the parser
 parser = argparse.ArgumentParser(description=
@@ -226,6 +243,7 @@ parser.add_argument('--bcf', help='input bcf var file')
 parser.add_argument('--genome', help='file containing chromosomes to analyse, format: chrom\tchrom_len\tchrom_short_name\ploidy\tlow_d\thigh_d', default=None)
 parser.add_argument('--caller', help='samtools or gatk [samtools]', default='samtools')
 parser.add_argument('--Q', help='minimum quality score', type=float, default=20.0)
+parser.add_argument('--ex', help='exhange chromosome names using file [None]', default=None)
 parser.add_argument('--rmsk', help='rmsk to use', default=None)
 parser.add_argument('--ab', help='allelic balance threshold [0.5] (no filter)', type=float, default=0.50)
 parser.add_argument('--prune', help='distance (nt) to prune within [0] (no filter)', type=int, default=0)
@@ -235,6 +253,7 @@ parser.add_argument('--log', help='log level [info]', default='info')
 args = parser.parse_args()
 #args = parser.parse_args('--bcf Aborigine_trimmed_hg19.flat.var.bcf --chr build37_rCRS.genome --Q 40 --rmsk /panvol1/simon/databases/hs_ref37_rCRS/rmsk/rmsk_build37_rCRS.sort.gi.genome --prune 5 --ab 0.2'.split())
 #args = parser.parse_args('--bcf /panvol1/simon/projects/cge/test/kleb_10_213361/genotyping/kleb_10_213361.bcf --genome /panvol1/simon/projects/cge/test/kleb_10_213361/kleb_pneu.genome --caller samtools --Q 40.000000 --rmsk None --ab 20.000000 --prune 5 --o genotyping/kleb_10_213361.vcf'.split())
+#args = parser.parse_args('--bcf /panvol1/simon/projects/cge/test/kleb_10_213361/genotyping/kleb_10_213361.all.bcf --genome /panvol1/simon/projects/cge/test/kleb_pneu.genome --caller samtools --Q 40.000000 --rmsk None --ab 0.200000 --prune 5 --o genotyping/kleb_10_213361.var.flt.vcf.gz'.split())
 
 # set logging
 logger = logging.getLogger('genobox.py')
@@ -269,6 +288,9 @@ vcf_filter_allelic_balance('genotyping/tmp.flt.all.rmsk.hetfilt.vcf', args.ab, a
 
 # pruning of nearby calls
 vcf_filter_prune('genotyping/tmp.flt.all.rmsk.hetfilt.abfilt.vcf', args.prune, args.o)
+
+# write indels for filtering of reference calls
+write_indels_for_filtering(args.o, args.ex)
 
 # remove temporary files
 genobox_moab.rm_files(['genotyping/tmp.flt*'])

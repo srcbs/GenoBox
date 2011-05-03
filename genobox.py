@@ -52,7 +52,7 @@ parser = argparse.ArgumentParser(prog='genobox.py', description='''Genobox is a 
 
 # general (parent parser)
 parent_parser = argparse.ArgumentParser(add_help=False)
-parent_parser.add_argument('--dir', help='name of run and output directory', default=None)
+parent_parser.add_argument('--sample', help='name of run and output directory', default=None)
 parent_parser.add_argument('--n', help='number of threads for parallel run [4]', default=4, type=int)
 parent_parser.add_argument('--queue', help='queue to submit jobs to (idle, cbs, cpr, cge, urgent) [cbs]', default='cbs')
 parent_parser.add_argument('--log', help='log level [INFO]', default='info')
@@ -62,17 +62,18 @@ subparsers = parser.add_subparsers(dest='module')
 
 # alignment
 parser_alignment = subparsers.add_parser('alignment', help='Single and paired end alignment using bwa', parents=[parent_parser])
-parser_alignment.add_argument('--se', help='input single end fqfiles', nargs='+', action=set_abspath())
-parser_alignment.add_argument('--pe1', help='input paired end fqfiles PE1', nargs='+', action=set_abspath())
-parser_alignment.add_argument('--pe2', help='input paired end fqfiles PE2', nargs='+', action=set_abspath())
-parser_alignment.add_argument('--bwaindex', help='bwa indexes to map against', action=set_abspath())
+parser_alignment.add_argument('--se', help='input single end fqfiles', nargs='+', action=set_abspath(), default=[])
+parser_alignment.add_argument('--pe1', help='input paired end fqfiles PE1', nargs='+', action=set_abspath(), default=[])
+parser_alignment.add_argument('--pe2', help='input paired end fqfiles PE2', nargs='+', action=set_abspath(), default=[])
+parser_alignment.add_argument('--fa', help='input fasta to map against', action=set_abspath())
+parser_alignment.add_argument('--libfile', help='input parameter file', action=set_abspath())
+parser_alignment.add_argument('--libs', help='if --libfile is not given, library names for each input fq', nargs='+', default=['lib'])
 parser_alignment.add_argument('--a', help='maximum insert size for bwa sampe (-a) [500]', default=500, type=int)
-parser_alignment.add_argument('--r', help='read group format like \"@RG\\tID:foo\\tSM:bar\"', default='\"@RG\\tID:foo\\tSM:bar\"')
 parser_alignment.add_argument('--qtrim', help='quality threshold to trim 3\'', default=0, type=int, action=required_interval(0,1000))
 
 # bam process
 parser_bamprocess = subparsers.add_parser('bamprocess', help='Sort, filter, merge, rmdup and final merge of bams', parents=[parent_parser])
-parser_bamprocess.add_argument('--lib_file', help='input file with libraries', action=set_abspath())
+parser_bamprocess.add_argument('--libfile', help='input parameter file', action=set_abspath())
 parser_bamprocess.add_argument('--bam', help='input bam-files', nargs='+', action=set_abspath())
 parser_bamprocess.add_argument('--mapq', help='mapping quality threshold', type=int, nargs='+', default=[30])
 parser_bamprocess.add_argument('--libs', help='library name for each bam file', nargs='+', default=['lib'])
@@ -99,10 +100,11 @@ parser_vcffilter.add_argument('--bcf', help='input bcf var file', action=set_abs
 parser_vcffilter.add_argument('--genome', help='file containing genome to analyse, format: chrom\tchrom_len\tchrom_short_name\tploidy\tmin_depth\tmax_depth\n', default=None, action=set_abspath())
 parser_vcffilter.add_argument('--caller', help='samtools or gatk [samtools]', default='samtools')
 parser_vcffilter.add_argument('--Q', help='minimum quality score', type=float, default=20.0, action=required_interval(0,10000))
+parser_vcffilter.add_argument('--ex', help='exhange chromosome names using file [None]', default=None)
 parser_vcffilter.add_argument('--rmsk', help='rmsk to use', default=None, action=set_abspath())
 parser_vcffilter.add_argument('--ab', help='allelic balance threshold [0.5] (no filter)', type=float, default=0.50, action=required_interval(0,1))
 parser_vcffilter.add_argument('--prune', help='distance (nt) to prune within [0] (no filter)', type=int, default=0, action=required_interval(0,100000000))
-parser_vcffilter.add_argument('--o', help='output vcffile [snpcalls.vcf]', default='snpcalls.vcf')
+parser_vcffilter.add_argument('--o', help='output vcffile [snpcalls.vcf.gz]', default='snpcalls.vcf.gz')
 
 # dbsnp
 parser_dbsnp = subparsers.add_parser('dbsnp', help='Annotate vcf file with dbSNP information', parents=[parent_parser])
@@ -125,16 +127,15 @@ parser_bcf2ref.add_argument('--o', help='output prefix for ref.ann.vcf.gz files 
 
 # abgv
 parser_abgv = subparsers.add_parser('abgv', help='Perform alignment, bam-processing, genotyping and filtering', parents=[parent_parser])
-parser_abgv.add_argument('--se', help='input single end fqfiles', nargs='+', action=set_abspath())
-parser_abgv.add_argument('--pe1', help='input paired end fqfiles PE1', nargs='+', action=set_abspath())
-parser_abgv.add_argument('--pe2', help='input paired end fqfiles PE2', nargs='+', action=set_abspath())
-parser_abgv.add_argument('--bwaindex', help='bwa indexes to map against', action=set_abspath())
+parser_abgv.add_argument('--se', help='input single end fqfiles', nargs='+', action=set_abspath(), default=[])
+parser_abgv.add_argument('--pe1', help='input paired end fqfiles PE1', nargs='+', action=set_abspath(), default=[])
+parser_abgv.add_argument('--pe2', help='input paired end fqfiles PE2', nargs='+', action=set_abspath(), default=[])
+parser_abgv.add_argument('--fa', help='bwa index to map against', action=set_abspath())
+parser_abgv.add_argument('--libfile', help='input parameter file', action=set_abspath())
 parser_abgv.add_argument('--a', help='maximum insert size for bwa sampe (-a) [500]', default=500, type=int)
-parser_abgv.add_argument('--r', help='read group format like \"@RG\\tID:foo\\tSM:bar\"', default='\"@RG\\tID:foo\\tSM:bar\"')
 parser_abgv.add_argument('--qtrim', help='quality threshold to trim 3\'', default=0, type=int, action=required_interval(0,1000))
-parser_abgv.add_argument('--lib_file', help='input file with libraries', action=set_abspath())
 parser_abgv.add_argument('--mapq', help='mapping quality threshold', type=int, nargs='+', default=[30])
-parser_abgv.add_argument('--libs', help='library name for each bam file', nargs='+', default=['lib'])
+parser_abgv.add_argument('--libs', help='if --libfile is not given, library names for each input fq', nargs='+', default=['lib'])
 parser_abgv.add_argument('--tmpdir', help='temporary dir for rmdup [/panvol1/simon/tmp/]', default='/panvol1/simon/tmp/', action=set_abspath())
 parser_abgv.add_argument('--genome', help='file containing genome to analyse, format: chrom\tchrom_len\tchrom_short_name\tploidy\tmin_depth\tmax_depth\n', default=None, action=set_abspath())
 parser_abgv.add_argument('--prior', help='type of prior to use for bayesian model (full, flat, cond2) [flat]', default='flat')
@@ -154,22 +155,21 @@ parser_abgv.add_argument('--oref', help='output reference vcf-file [genotyping/\
 
 # parse args
 args = parser.parse_args()
-#args = parser.parse_args('alignment --se SRR002081se.recal.fastq SRR002082se.recal.fastq --pe1 SRR002137pe_1.recal.fastq SRR002138pe_1.recal.fastq --pe2 SRR002137pe_2.recal.fastq SRR002138pe_2.recal.fastq --bwaindex /panvol1/simon/databases/hs_ref37_rCRS/hs_ref_GRCh37_all.fa'.split(' '))
-#args = parser.parse_args('alignment --pe1 Kleb-10-213361_2_1_sequence.trim.fq --pe2 Kleb-10-213361_2_2_sequence.trim.fq --bwaindex kleb_pneu.fa --dir kleb_10_213361 --n 16'.split(' '))
-#args = parser.parse_args('alignment --se Kleb-10-213361_2_1_sequence.trim.fq --bwaindex kleb_pneu.fa --dir kleb_10_213361se --n 16'.split(' '))
+#args = parser.parse_args('alignment --se SRR002081se.recal.fastq SRR002082se.recal.fastq --pe1 SRR002137pe_1.recal.fastq SRR002138pe_1.recal.fastq --pe2 SRR002137pe_2.recal.fastq SRR002138pe_2.recal.fastq --n 16 --sample NA12891 --fa /panvol1/simon/databases/hs_ref37_rCRS/hs_ref_GRCh37_rCRS.fa'.split(' '))
+#args = parser.parse_args('alignment --se Kleb-10-213361_2_1_sequence.trim.fq --fa kleb_pneu.fa args.sample kleb_10_213361se --n 16'.split(' '))
 #args = parser.parse_args('bamprocess --bam alignment/SRR002081se.recal.fastq.bam alignment/SRR002082se.recal.fastq.bam alignment/SRR002137pe_1.recal.fastq.bam alignment/SRR002138pe_1.recal.fastq.bam --mapq 30 --libs libA'.split(' '))
 #args = parser.parse_args('bamprocess --bam alignment/Kleb-10-213361_2_1_sequence.trim.fq.bam --mapq 30 --outbam alignment/kleb_10_213361.flt.sort.rmdup.bam --n 16'.split(' '))
 #args = parser.parse_args('bamstats --bam alignment/kleb_10_213361.flt.sort.rmdup.bam --genome ../kleb_pneu.genome'.split(' '))
 #args = parser.parse_args('genotyping --bam alignment/kleb_10_213361.flt.sort.rmdup.bam --genome kleb_pneu.genome --fa ../kleb_pneu.fa --prior full --pp 0.01 --var --o genotyping/kleb_10_213361.bcf'.split(' '))
 #args = parser.parse_args('vcffilter --bcf genotyping/kleb_10_213361.bcf --Q 40 --prune 5 --ab 0.20 --genome kleb_pneu.genome --o genotyping/kleb_10_213361.vcf'.split(' '))
-#args = parser.parse_args('abgv --pe1 Kleb-10-213361_2_1_sequence.trim.fq --pe2 Kleb-10-213361_2_2_sequence.trim.fq --bwaindex kleb_pneu.fa --genome kleb_pneu.genome --ab 0.2 --prune 5 --dir kleb_10_213361'.split(' '))
-
+#args = parser.parse_args('abgv --pe1 Kleb-10-213361_2_1_sequence.trim.fq --pe2 Kleb-10-213361_2_2_sequence.trim.fq --fa kleb_pneu.fa --genome kleb_pneu.genome --ab 0.2 --prune 5 args.sample kleb_10_213361'.split(' '))
+#args = parser.parse_args('abgv --se data/*.trim --fa /panvol1/simon/databases/hs_ref37_rCRS/hs_ref_GRCh37_all.fa --r @RG\\tID:AA\\tSM:AusAboriginal\\tLB:ACD\\tPL:ILLUMINA\\tCN:BGI --lib_file libs --genome build37_rCRS.genome --prior flat --pp 0.0001 --Q 40 --rmsk rmsk_build37_rCRS.number.sort.genome --ex gi2number.build37_rCRS --ab 0.2 --prune 5 --n 16 --ovar genotyping/AusAboriginal.var.flt.vcf.gz --oref genotyping/AusAboriginal.ref.flt.vcf.gz'.split())
 
 # If working dir is given, create and move to working directory else run where program is invoked
-if args.dir:
-   if not os.path.exists(args.dir):
-      os.makedirs(args.dir)
-   os.chdir(args.dir)
+if args.sample:
+   if not os.path.exists(args.sample):
+      os.makedirs(args.sample)
+   os.chdir(args.sample)
 else:
    pass
 
@@ -193,7 +193,7 @@ if args.module == 'alignment':
 
 elif args.module == 'bamprocess':
    from genobox_bamprocess import *
-   final_bam = start_bamprocess(args.lib_file, args.bam, args.mapq, args.libs, args.tmpdir, args.queue, args.outbam, logger)
+   final_bam = start_bamprocess(args.lib_file, args.bam, args.mapq, args.libs, args.tmpdir, args.queue, args.outbam, args.sample, logger)
 
 elif args.module == 'bamstats':
    from genobox_bamstats import *
@@ -205,7 +205,7 @@ elif args.module == 'genotyping':
 
 elif args.module == 'vcffilter':
    from genobox_vcffilter import *
-   final_vcf = start_vcffilter(args.bcf, args.genome, args.caller, args.Q, args.rmsk, args.ab, args.prune, args.o, args.queue, args.dir, logger)
+   final_vcf = start_vcffilter(args.bcf, args.genome, args.caller, args.Q, args.ex, args.rmsk, args.ab, args.prune, args.o, args.queue, args.sample, logger)
 
 elif args.module == 'dbsnp':
    from genobox_dbsnp import *
@@ -213,7 +213,7 @@ elif args.module == 'dbsnp':
 
 elif args.module == 'bcf2ref':
    from genobox_bcf2ref import *
-   start_bcf2ref(args.bcf, args.genome, args.Q, args.ex, args.dbsnp, args.rmsk, args.indels, args.o, args.queue, args.dir, logger)
+   start_bcf2ref(args.bcf, args.genome, args.Q, args.ex, args.dbsnp, args.rmsk, args.indels, args.o, args.queue, args.sample, logger)
 
 elif args.module == 'abgv':
    from genobox_abgv import *
@@ -222,19 +222,23 @@ elif args.module == 'abgv':
 else:
    pass
 
-# genobox.py bcf2ref --bcf genotyping/abcalls.all.bcf --genome build37_rCRS.genome --Q 40 --ex /panvol1/simon/databases/hs_ref37_rCRS/gi2number.build37_rCRS --dbsnp /panvol1/simon/databases/dbsnp/dbsnp132_hg19.vcf.gz --rmsk /panvol1/simon/databases/hs_ref37_rCRS/rmsk/rmsk_build37_rCRS.number.sort.genome --header genotyping/header.vcf --indels genotyping/indels_for_filtering.number.vcf --o abcalls
-# genobox.py bcf2ref --bcf genotyping/abcalls.all.bcf --genome tmp.genome --Q 40 --ex /panvol1/simon/databases/hs_ref37_rCRS/gi2number.build37_rCRS --dbsnp /panvol1/simon/databases/dbsnp/dbsnp132_hg19.vcf.gz --rmsk /panvol1/simon/databases/hs_ref37_rCRS/rmsk/rmsk_build37_rCRS.number.sort.genome --indels genotyping/indels_for_filtering.number.vcf --o abcalls
-# genobox.py bcf2ref --bcf genotyping/abcalls.all.bcf --genome mt.genome --Q 40 --ex /panvol1/simon/databases/hs_ref37_rCRS/gi2number.build37_rCRS --dbsnp /panvol1/simon/databases/dbsnp/dbsnp132_hg19.vcf.gz --rmsk /panvol1/simon/databases/hs_ref37_rCRS/rmsk/rmsk_build37_rCRS.number.sort.genome --indels genotyping/indels_for_filtering.number.vcf --o abcalls
-
-
 
 ## testing using kleb data ##
 
 # echo "gi|206564770|gb|CP000964.1|\t5641239\tchr\thaploid\t10\t100" > kleb_pneu.genome
+# genobox.py abgv --pe1 Kleb-10-213361_2_1_sequence.trim.fq --pe2 Kleb-10-213361_2_2_sequence.trim.fq --n 16 --sample Kleb-10-213361 --mapq 30 30 --libs A --genome kleb_pneu.genome --fa kleb_pneu.fa --ab 0.2 --prune 5
 
-# genobox.py alignment --pe1 Kleb-10-213361_2_1_sequence.trim.fq --pe2 Kleb-10-213361_2_2_sequence.trim.fq --bwaindex kleb_pneu.fa --dir kleb_10_213361 --n 16
-# genobox.py bamprocess --bam alignment/Kleb-10-213361_2_1_sequence.trim.fq.bam --mapq 30 --outbam alignment/kleb_10_213361.flt.sort.rmdup.bam --n 16
-# genobox.py genotyping --bam alignment/kleb_10_213361.flt.sort.rmdup.bam --genome kleb_pneu.genome --fa ../kleb_pneu.fa --prior full --pp 0.01 --var --o genotyping/kleb_10_213361.bcf
-# genobox.py vcffilter --bcf genotyping/kleb_10_213361.bcf --Q 40 --prune 5 --ab 20 --genome kleb_pneu.genome --o genotyping/kleb_10_213361.vcf
-# genobox.py abgv --pe1 Kleb-10-213361_2_1_sequence.trim.fq --pe2 Kleb-10-213361_2_2_sequence.trim.fq --bwaindex kleb_pneu.fa --genome kleb_pneu.genome --ab 0.2 --prune 5 --dir kleb_10_213361
- 
+
+# test on 1000G data
+# genobox.py alignment --se SRR002081se.recal.fastq SRR002082se.recal.fastq --pe1 SRR002137pe_1.recal.fastq SRR002138pe_1.recal.fastq --pe2 SRR002137pe_2.recal.fastq SRR002138pe_2.recal.fastq --n 16 --sample NA12891 --fa /panvol1/simon/databases/hs_ref37_rCRS/hs_ref_GRCh37_all.fa
+
+# test on Aus Aboriginal
+# create libs file
+
+#echo 'ID\tData\tMAPQ\tLB\tCN\tPL\tSM' > libs.AusAboriginal.txt
+#ll data/*.trim | perl -ane 'BEGIN{$count=0} ; if ($F[8] =~ m/.*\/(\w)/) {$count++ ; $id ="AusAboriginal_$count" ; print "$id\t/panvol1/simon/projects/AusAboriginal/$F[8]\t30\tlib$1\tBGI\tILLUMINA\tAusAboriginal\n" } ' >> libs.AusAboriginal.txt
+
+# genobox.py abgv --se data/*.trim --fa /panvol1/simon/databases/hs_ref37_rCRS/hs_ref_GRCh37_all.fa  --libfile libs.AusAboriginal.txt --genome build37_rCRS.genome --prior flat --pp 0.0001 --Q 40 --rmsk rmsk_build37_rCRS.number.sort.genome --ex gi2number.build37_rCRS --ab 0.2 --prune 5 --n 4 --ovar genotyping/AusAboriginal.var.flt.vcf.gz --oref genotyping/AusAboriginal.ref.flt.vcf.gz
+
+
+

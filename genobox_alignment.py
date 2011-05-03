@@ -1,28 +1,61 @@
 #!/usr/bin/python
 
+def check_fa(fa):
+   '''Checks for a fa of the input fasta file. If not present creates it'''
+   
+   import genobox_moab
+   import subprocess
+   import os
+   import sys
+   
+   paths = genobox_moab.setSystem()
+   
+   # check if fa exists
+   index_suffixes = ['.amb', '.ann', '.bwt', '.pac', '.rbwt', '.rpac', '.rsa', '.sa']
+   for suf in index_suffixes:
+      f = fa + suf
+      if os.path.exists(f):
+         pass
+      else:
+         sys.stderr.write('%s not found, creating bwa index\n' % fa)
+         call = paths['bwa_home'] + 'bwa index -a is %s' % fa
+         try: 
+            subprocess.check_call(call, shell=True)
+         except:
+            sys.stderr.write('bwa index -a is failed, trying bwa index -a bwtsw\n')
+            call = paths['bwa_home'] + 'bwa index -a bwtsw %s' % fa
+            try:
+               subprocess.check_call(call, shell=True)
+            except: 
+               raise TypeError('bwa index could not be created from %s' % fa)
+         break
+ 
+
 def check_formats_fq(i):
    '''Checks format of fastq file and returns it'''
    
-   import genobox_moab
+   import genobox_modules
    
    # check if fastq and if so mode
-   format = genobox_moab.set_filetype(i)
+   format = genobox_modules.set_filetype(i)
    if format != 'fastq':
       raise ValueError('Input must be fastq')
    else:
-      fqtype = genobox_moab.set_fqtype(i)   
+      fqtype = genobox_modules.set_fqtype(i)   
    return fqtype
+
 
 def all_same(items):
    '''Check if all items in list/tuple are the same type'''
    return all(x == items[0] for x in items)
 
 
-def bwa_se_align(fastqs, bwaindex, fqtypes, qtrim, alignpath, r, threads, queue, logger):
+def bwa_se_align(fastqs, fa, fqtypes, qtrim, alignpath, libdict, threads, queue, logger):
    '''Start alignment using bwa of fastq reads on index'''
    
    import subprocess
    import genobox_moab
+   import genobox_modules
    import os
    paths = genobox_moab.setSystem()
    home = os.getcwd()
@@ -35,6 +68,9 @@ def bwa_se_align(fastqs, bwaindex, fqtypes, qtrim, alignpath, r, threads, queue,
    else:
       cpuB = cpuA
    
+   # get readgroups
+   RG = genobox_modules.read_groups_from_libfile('Data', libdict)
+   
    # align
    cmd = paths['bwa_home'] + 'bwa'
    bwa_align = []
@@ -44,19 +80,21 @@ def bwa_se_align(fastqs, bwaindex, fqtypes, qtrim, alignpath, r, threads, queue,
       saifile = alignpath + f + '.sai'
       saifiles.append(saifile)
       if fqtypes[i] == 'Illumina':
-         arg = ' aln -I -t %i -q %i %s %s > %s' % (threads, qtrim, bwaindex, fq, saifile)
+         arg = ' aln -I -t %i -q %i %s %s > %s' % (threads, qtrim, fa, fq, saifile)
       elif fqtypes[i] == 'Sanger':
-         arg = ' aln -t %i -q %i %s %s > %s' % (threads, qtrim, bwaindex, fq, saifile)   
+         arg = ' aln -t %i -q %i %s %s > %s' % (threads, qtrim, fa, fq, saifile)   
       bwa_align.append(cmd+arg)
    
    # samse
    bwa_samse = []
    bamfiles = []
+   bamfiles_dict = dict()
    for i,fq in enumerate(fastqs):
       f = os.path.split(fq)[1]
       bamfile = alignpath + f + '.bam'
       bamfiles.append(bamfile)
-      call = '%sbwa samse -r %s %s %s %s | %ssamtools view -Sb - > %s' % (paths['bwa_home'], r, bwaindex, saifiles[i], fq, paths['samtools_home'], bamfile)
+      bamfiles_dict[fq] = bamfile
+      call = '%sbwa samse -r \"%s\" %s %s %s | %ssamtools view -Sb - > %s' % (paths['bwa_home'], '\\t'.join(RG[fq]), fa, saifiles[i], fq, paths['samtools_home'], bamfile)
       bwa_samse.append(call)
       
    # submit jobs
@@ -70,13 +108,14 @@ def bwa_se_align(fastqs, bwaindex, fqtypes, qtrim, alignpath, r, threads, queue,
    # release jobs
    releasemsg = genobox_moab.releasejobs(allids)
    
-   return (bwa_samseids, bamfiles)
+   return (bwa_samseids, bamfiles_dict)
 
-def bwa_pe_align(pe1, pe2, bwaindex, fqtypes_pe1, fqtypes_pe2, qtrim, alignpath, a, r, threads, queue, logger):
+def bwa_pe_align(pe1, pe2, fa, fqtypes_pe1, fqtypes_pe2, qtrim, alignpath, a, libdict, threads, queue, logger):
    '''Start alignment using bwa of paired end fastq reads on index'''
    
    import subprocess
    import genobox_moab
+   import genobox_modules
    import os
    paths = genobox_moab.setSystem()
    home = os.getcwd()
@@ -89,6 +128,9 @@ def bwa_pe_align(pe1, pe2, bwaindex, fqtypes_pe1, fqtypes_pe2, qtrim, alignpath,
    else:
       cpuB = cpuA
    
+   # get readgroups
+   RG = genobox_modules.read_groups_from_libfile('Data', libdict)
+   
    # align and sampe
    cmd = paths['bwa_home'] + 'bwa'
    bwa_align = []
@@ -100,6 +142,7 @@ def bwa_pe_align(pe1, pe2, bwaindex, fqtypes_pe1, fqtypes_pe2, qtrim, alignpath,
    saifiles1 = []
    saifiles2 = []
    bamfiles = []
+   bamfiles_dict = dict()
    
    for i,fq in enumerate(pe1):
       # set input fastq format
@@ -121,10 +164,13 @@ def bwa_pe_align(pe1, pe2, bwaindex, fqtypes_pe1, fqtypes_pe2, qtrim, alignpath,
       saifiles2.append(saifile2)
       bamfiles.append(alignpath + f1 + '.bam')
       
+      bamfiles_dict[pe1[i]] = alignpath + f1 + '.bam'
+      bamfiles_dict[pe2[i]] = alignpath + f1 + '.bam'
+      
       # generate calls
-      bwa_align1 = '%s -t %s -q %i %s -f %s %s ' % (bwa_cmd, threads, qtrim, bwaindex, saifiles1[i], pe1[i])
-      bwa_align2 = '%s -t %s -q %i %s -f %s %s ' % (bwa_cmd, threads, qtrim, bwaindex, saifiles2[i], pe2[i])
-      sampecall = '%sbwa sampe -a %i -r %s %s %s %s %s %s | %ssamtools view -Sb - > %s' % (paths['bwa_home'], a, r, bwaindex, saifiles1[i], saifiles2[i], pe1[i], pe2[i], paths['samtools_home'], bamfiles[i])
+      bwa_align1 = '%s -t %s -q %i %s -f %s %s ' % (bwa_cmd, threads, qtrim, fa, saifiles1[i], pe1[i])
+      bwa_align2 = '%s -t %s -q %i %s -f %s %s ' % (bwa_cmd, threads, qtrim, fa, saifiles2[i], pe2[i])
+      sampecall = '%sbwa sampe -a %i -r \"%s\" %s %s %s %s %s | %ssamtools view -Sb - > %s' % (paths['bwa_home'], a, '\\t'.join(RG[fq]), fa, saifiles1[i], saifiles2[i], pe1[i], pe2[i], paths['samtools_home'], bamfiles[i])
       bwa_align1_calls.append(bwa_align1)
       bwa_align2_calls.append(bwa_align2)
       bwa_sampe_calls.append(sampecall)
@@ -142,28 +188,43 @@ def bwa_pe_align(pe1, pe2, bwaindex, fqtypes_pe1, fqtypes_pe2, qtrim, alignpath,
       bwa_alignids.append(bwa_alignids2[i])
    
    # submit sampe
-   bwa_sampeids = genobox_moab.submitjob(bwa_sampe_calls, home, paths, logger, 'run_genobox_bwasampe', queue, cpuA, True, 'conc', len(bwa_alignids), True, *bwa_alignids)
+   bwa_sampeids = genobox_moab.submitjob(bwa_sampe_calls, home, paths, logger, 'run_genobox_bwasampe', queue, cpuA, True, 'conc', len(bwa_alignids)/2, True, *bwa_alignids)
    
    # release jobs
    allids.extend(bwa_alignids) ; allids.extend(bwa_sampeids)
    releasemsg = genobox_moab.releasejobs(allids)
    
-   return (bwa_sampeids, bamfiles)
+   return (bwa_sampeids, bamfiles_dict)
    
 
 def start_alignment(args, logger):
    '''Start alignment of fastq files using BWA'''
    
    import genobox_moab
+   import genobox_modules
    import subprocess
    import os
+   
    paths = genobox_moab.setSystem()
    home = os.getcwd()
    semaphore_ids = []
-   bamfiles = []
+   bamfiles = dict()
    
    if not os.path.exists('alignment'):
       os.makedirs('alignment')
+   
+   # check and load/create library file
+   if args.libfile and args.libfile != 'None':
+      libdict = genobox_modules.read_library(args.libfile)
+      libfile = args.libfile
+   else:
+      try:
+         (libdict, libfile) = genobox_modules.library_from_input(args.se + args.pe1 + args.pe2, args.sample, args.mapq, args.libs)
+      except:
+         (libdict, libfile) = genobox_modules.library_from_input(args.se + args.pe1 + args.pe2, args.sample, [30], args.libs)
+   
+   # check for fa
+   check_fa(args.fa)
    
    # start single end alignments
    if args.se:
@@ -171,9 +232,9 @@ def start_alignment(args, logger):
       # set fqtypes
       fqtypes_se = map(check_formats_fq, args.se)
       print "Submitting single end alignments"
-      (se_align_ids, bamfiles_se) = bwa_se_align(args.se, args.bwaindex, fqtypes_se, args.qtrim, 'alignment/', args.r, args.n, args.queue, logger)
+      (se_align_ids, bamfiles_se) = bwa_se_align(args.se, args.fa, fqtypes_se, args.qtrim, 'alignment/', libdict, args.n, args.queue, logger)
       semaphore_ids.extend(se_align_ids)
-      bamfiles.extend(bamfiles_se)
+      bamfiles.update(bamfiles_se)
       
    # start paired end alignments
    if args.pe1:
@@ -188,14 +249,18 @@ def start_alignment(args, logger):
       fqtypes_pe.extend(fqtypes_pe2)
       
       print "Submitting paired end alignments"
-      (pe_align_ids, bamfiles_pe) = bwa_pe_align(args.pe1, args.pe2, args.bwaindex, fqtypes_pe1, fqtypes_pe2, args.qtrim, 'alignment/', args.a, args.r, args.n, args.queue, logger)            
+      (pe_align_ids, bamfiles_pe) = bwa_pe_align(args.pe1, args.pe2, args.fa, fqtypes_pe1, fqtypes_pe2, args.qtrim, 'alignment/', args.a, libdict, args.n, args.queue, logger)            
       semaphore_ids.extend(pe_align_ids)
-      bamfiles.extend(bamfiles_pe)
+      bamfiles.update(bamfiles_pe)
+
+   # update libfile
+   genobox_modules.update_libfile(libfile, 'Data', 'BAM', bamfiles, force=True)
    
    # wait for jobs to finish
    print "Waiting for jobs to finish ..." 
    genobox_moab.wait_semaphore(semaphore_ids, home, 'bwa_alignment', args.queue, 60, 86400)
    print "--------------------------------------"
-      
+   
+   
    # return bamfiles   
-   return bamfiles
+   return (bamfiles, libfile)

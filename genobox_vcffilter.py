@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-def start_vcffilter(bcf, genome, caller, Q, rmsk, ab, prune, o, queue, dir, logger):
+def start_vcffilter(bcf, genome, caller, Q, ex, rmsk, ab, prune, o, queue, dir, logger):
    '''Start variant vcf-filter
    
    Genome file must be given, format is a line for each chromosome:
