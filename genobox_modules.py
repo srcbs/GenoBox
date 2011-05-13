@@ -100,6 +100,7 @@ def update_libfile(libfile, key_col, new_col, val_dict, force=False):
          return 
       else:
          n = header.index(new_col)
+         header.remove(new_col)
          new_data = []
          for line in data:
             fields = line.split('\t')

@@ -147,7 +147,6 @@ parser_abgv.add_argument('--ab', help='allelic balance threshold [0.5] (no filte
 parser_abgv.add_argument('--prune', help='distance (nt) to prune within [0] (no filter)', type=int, default=0, action=required_interval(0,100000000))
 parser_abgv.add_argument('--ex', help='exhange chromosome names using file [None]', default=None, action=set_abspath())
 parser_abgv.add_argument('--dbsnp', help='dbsnp file to use (vcf.gz format)', default=None, action=set_abspath())
-parser_abgv.add_argument('--indels', help='indels vcf to remove', default=None, action=set_abspath())
 parser_abgv.add_argument('--ovar', help='output variant vcf-file [genotyping/\"name\".var.flt.vcf.gz]', default='genotyping/var.flt.vcf.gz')
 parser_abgv.add_argument('--oref', help='output reference vcf-file [genotyping/\"name\".ref.flt.vcf.gz]', default='genotyping/ref.flt.vcf.gz')
 
@@ -163,12 +162,13 @@ args = parser.parse_args()
 #args = parser.parse_args('genotyping --bam alignment/kleb_10_213361.flt.sort.rmdup.bam --genome kleb_pneu.genome --fa ../kleb_pneu.fa --prior full --pp 0.01 --var --o genotyping/kleb_10_213361.bcf'.split(' '))
 #args = parser.parse_args('vcffilter --bcf genotyping/kleb_10_213361.bcf --Q 40 --prune 5 --ab 0.20 --genome kleb_pneu.genome --o genotyping/kleb_10_213361.vcf'.split(' '))
 #args = parser.parse_args('abgv --pe1 Kleb-10-213361_2_1_sequence.trim.fq --pe2 Kleb-10-213361_2_2_sequence.trim.fq --fa kleb_pneu.fa --genome kleb_pneu.genome --ab 0.2 --prune 5 args.sample kleb_10_213361'.split(' '))
-#args = parser.parse_args('abgv --se data/*.trim --fa /panvol1/simon/databases/hs_ref37_rCRS/hs_ref_GRCh37_all.fa --r @RG\\tID:AA\\tSM:AusAboriginal\\tLB:ACD\\tPL:ILLUMINA\\tCN:BGI --lib_file libs --genome build37_rCRS.genome --prior flat --pp 0.0001 --Q 40 --rmsk rmsk_build37_rCRS.number.sort.genome --ex gi2number.build37_rCRS --ab 0.2 --prune 5 --n 16 --ovar genotyping/AusAboriginal.var.flt.vcf.gz --oref genotyping/AusAboriginal.ref.flt.vcf.gz'.split())
+#args = parser.parse_args(' abgv --se data/*.trim --fa /panvol1/simon/databases/hs_ref37_rCRS/hs_ref_GRCh37_all.fa  --libfile libs.AusAboriginal.txt --genome build37_rCRS.genome --prior flat --pp 0.0001 --Q 40 --rmsk rmsk_build37_rCRS.number.sort.genome --ex gi2number.build37_rCRS --ab 0.2 --prune 5 --n 4 --ovar genotyping/AusAboriginal.var.flt.vcf.gz --oref genotyping/AusAboriginal.ref.flt.vcf.gz --sample AusAboriginal'.split())
 
 # If working dir is given, create and move to working directory else run where program is invoked
 if args.sample:
    if not os.path.exists(args.sample):
       os.makedirs(args.sample)
+   os.chmod(args.sample, 0777)
    os.chdir(args.sample)
 else:
    pass
@@ -193,7 +193,7 @@ if args.module == 'alignment':
 
 elif args.module == 'bamprocess':
    from genobox_bamprocess import *
-   final_bam = start_bamprocess(args.lib_file, args.bam, args.mapq, args.libs, args.tmpdir, args.queue, args.outbam, args.sample, logger)
+   final_bam = start_bamprocess(args.libfile, args.bam, args.mapq, args.libs, args.tmpdir, args.queue, args.outbam, args.sample, logger)
 
 elif args.module == 'bamstats':
    from genobox_bamstats import *
@@ -226,7 +226,7 @@ else:
 ## testing using kleb data ##
 
 # echo "gi|206564770|gb|CP000964.1|\t5641239\tchr\thaploid\t10\t100" > kleb_pneu.genome
-# genobox.py abgv --pe1 Kleb-10-213361_2_1_sequence.trim.fq --pe2 Kleb-10-213361_2_2_sequence.trim.fq --n 16 --sample Kleb-10-213361 --mapq 30 30 --libs A --genome kleb_pneu.genome --fa kleb_pneu.fa --ab 0.2 --prune 5
+# genobox.py abgv --pe1 Kleb-10-213361_2_1_sequence.trim.fq --pe2 Kleb-10-213361_2_2_sequence.trim.fq --n 16 --sample Kleb-10-213361 --mapq 30 30 --libs A A --genome kleb_pneu.genome --fa kleb_pneu.fa --ab 0.2 --prune 5
 
 
 # test on 1000G data
@@ -240,5 +240,5 @@ else:
 
 # genobox.py abgv --se data/*.trim --fa /panvol1/simon/databases/hs_ref37_rCRS/hs_ref_GRCh37_all.fa  --libfile libs.AusAboriginal.txt --genome build37_rCRS.genome --prior flat --pp 0.0001 --Q 40 --rmsk rmsk_build37_rCRS.number.sort.genome --ex gi2number.build37_rCRS --ab 0.2 --prune 5 --n 4 --ovar genotyping/AusAboriginal.var.flt.vcf.gz --oref genotyping/AusAboriginal.ref.flt.vcf.gz
 
-
+#args.se = ['/panvol1/simon/projects/AusAboriginal/data/A12.fq.cleaned.truncated.trim', '/panvol1/simon/projects/AusAboriginal/data/A18.fq.cleaned.truncated.trim', '/panvol1/simon/projects/AusAboriginal/data/C12.fq.cleaned.truncated.trim', '/panvol1/simon/projects/AusAboriginal/data/C18.fq.cleaned.truncated.trim', '/panvol1/simon/projects/AusAboriginal/data/C6L_1_1.cleaned.truncated.trim', '/panvol1/simon/projects/AusAboriginal/data/C6L_1_1_d2.cleaned.truncated.trim', '/panvol1/simon/projects/AusAboriginal/data/C6L_1_2.cleaned.truncated.trim', '/panvol1/simon/projects/AusAboriginal/data/C6L_2_1_d2.cleaned.truncated.trim', '/panvol1/simon/projects/AusAboriginal/data/C6_1_1.cleaned.truncated.trim', '/panvol1/simon/projects/AusAboriginal/data/C6_1_1_d2.cleaned.truncated.trim', '/panvol1/simon/projects/AusAboriginal/data/C6_1_2_01.cleaned.truncated.trim', '/panvol1/simon/projects/AusAboriginal/data/C6_1_2_02.cleaned.truncated.trim', '/panvol1/simon/projects/AusAboriginal/data/C6_2_1.cleaned.truncated.trim', '/panvol1/simon/projects/AusAboriginal/data/C6_2_1_d2.cleaned.truncated.trim', '/panvol1/simon/projects/AusAboriginal/data/C8_1b_d2.cleaned.truncated.trim', '/panvol1/simon/projects/AusAboriginal/data/C8_2b_d2.cleaned.truncated.trim', '/panvol1/simon/projects/AusAboriginal/data/C8_3b_d2.cleaned.truncated.trim', '/panvol1/simon/projects/AusAboriginal/data/C8_4b_d2.cleaned.truncated.trim', '/panvol1/simon/projects/AusAboriginal/data/D12_1.fq.cleaned.truncated.trim', '/panvol1/simon/projects/AusAboriginal/data/D12_2.fq.cleaned.truncated.trim', '/panvol1/simon/projects/AusAboriginal/data/D18.fq.cleaned.truncated.trim', '/panvol1/simon/projects/AusAboriginal/data/D7L_1_1.cleaned.truncated.trim', '/panvol1/simon/projects/AusAboriginal/data/D7L_1_2.cleaned.truncated.trim', '/panvol1/simon/projects/AusAboriginal/data/D7L_1_2_1_d2.cleaned.truncated.trim', '/panvol1/simon/projects/AusAboriginal/data/D7L_2_1_d2.cleaned.truncated.trim', '/panvol1/simon/projects/AusAboriginal/data/D7_1_1.cleaned.truncated.trim', '/panvol1/simon/projects/AusAboriginal/data/D7_1_2.cleaned.truncated.trim', '/panvol1/simon/projects/AusAboriginal/data/D7_2_1_d2.cleaned.truncated.trim', '/panvol1/simon/projects/AusAboriginal/data/D9_1b_d2.cleaned.truncated.trim', '/panvol1/simon/projects/AusAboriginal/data/D9_2b_d2.cleaned.truncated.trim', '/panvol1/simon/projects/AusAboriginal/data/D9_3b_d2.cleaned.truncated.trim']
 

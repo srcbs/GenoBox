@@ -188,7 +188,7 @@ def bwa_pe_align(pe1, pe2, fa, fqtypes_pe1, fqtypes_pe2, qtrim, alignpath, a, li
       bwa_alignids.append(bwa_alignids2[i])
    
    # submit sampe
-   bwa_sampeids = genobox_moab.submitjob(bwa_sampe_calls, home, paths, logger, 'run_genobox_bwasampe', queue, cpuA, True, 'conc', len(bwa_alignids)/2, True, *bwa_alignids)
+   bwa_sampeids = genobox_moab.submitjob(bwa_sampe_calls, home, paths, logger, 'run_genobox_bwasampe', queue, cpuA, True, 'conc', 2, True, *bwa_alignids)
    
    # release jobs
    allids.extend(bwa_alignids) ; allids.extend(bwa_sampeids)
@@ -252,7 +252,7 @@ def start_alignment(args, logger):
       (pe_align_ids, bamfiles_pe) = bwa_pe_align(args.pe1, args.pe2, args.fa, fqtypes_pe1, fqtypes_pe2, args.qtrim, 'alignment/', args.a, libdict, args.n, args.queue, logger)            
       semaphore_ids.extend(pe_align_ids)
       bamfiles.update(bamfiles_pe)
-
+   
    # update libfile
    genobox_modules.update_libfile(libfile, 'Data', 'BAM', bamfiles, force=True)
    
@@ -260,7 +260,6 @@ def start_alignment(args, logger):
    print "Waiting for jobs to finish ..." 
    genobox_moab.wait_semaphore(semaphore_ids, home, 'bwa_alignment', args.queue, 60, 86400)
    print "--------------------------------------"
-   
    
    # return bamfiles   
    return (bamfiles, libfile)

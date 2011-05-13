@@ -51,12 +51,19 @@ def bcf2varfilter(bcf, genome, Q, vcf_prefix):
 def cat_vcfs(vcfs, vcf_out):
    '''Concatenate vcf to a single vcf'''
    
-   cmd = 'cat'
-   arg = ' %s > %s' % (' '.join(vcfs), vcf_out)
-   call = cmd + arg
+   # create header
+   head_call = 'head -n 1000 %s | grep "#" > %s' % (vcfs[0], 'genotyping/header.vcf')
+   logger.info(head_call)
+   subprocess.check_call(head_call, shell=True)
+   
+   call = 'cat %s | grep -v "#" | cat genotyping/header.vcf - > %s' % (' '.join(vcfs), vcf_out)
    logger.info(call)
    subprocess.check_call(call, shell=True)
    
+   # rm tmp_files
+   rm_call = 'rm genotyping/header.vcf'
+   logger.info(rm_call)
+   subprocess.check_call(rm_call, shell=True)
 
 def vcf_filter_rmsk(vcf, rmsk, vcf_out):
    '''Removes variants called inside annotated repeat
@@ -170,7 +177,7 @@ def vcf_filter_allelic_balance(vcf, threshold, caller, vcf_out):
    else:
       call = 'cp %s %s' % (vcf, vcf_out)
       logger.info(call)
-      subprocess.check_call(call)
+      subprocess.check_call(call, shell=True)
 
 def vcf_filter_prune(vcf, prune, vcfgz_out):
    '''Prune variants within N nt of each other'''
@@ -201,7 +208,7 @@ def vcf_filter_prune(vcf, prune, vcfgz_out):
       logger.info(rm_call)
       subprocess.check_call(rm_call, shell=True)
    else:
-      call = '%sbgzip -c %s > %s' % (paths['bin_home'] + vcf, vcfgz_out)
+      call = '%sbgzip -c %s > %s' % (paths['bin_home'], vcf, vcfgz_out)
       logger.info(call)
       subprocess.check_call(call, shell=True)
 

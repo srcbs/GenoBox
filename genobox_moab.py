@@ -158,6 +158,7 @@ def submit_xmsub(calls, home, paths, logger, runname, queue, cpu, depend, hold, 
    import subprocess
    import time
    
+   group = 'cdrom'
    ids = []
    for i in range(len(calls)):
       call = calls[i]
@@ -178,9 +179,9 @@ def submit_xmsub(calls, home, paths, logger, runname, queue, cpu, depend, hold, 
       if hold:
          cmd = '%s -h ' % cmd
       if not depend:
-         xmsub = cmd+' -d %s -l %s,walltime=172800 -O %s -E %s -r y -q %s -N %s -t %s' % (home, cpu, stdout, stderr, queue, runname, call)
+         xmsub = cmd+' -d %s -l %s,walltime=172800 -O %s -E %s -r y -q %s -N %s -W group_list=%s -t %s' % (home, cpu, stdout, stderr, queue, runname, group, call)
       else:
-         xmsub = cmd+' -d %s -l %s,walltime=172800,depend=%s -O %s -E %s -r y -q %s -N %s -t %s' % (home, cpu, depends[i], stdout, stderr, queue, runname, call)
+         xmsub = cmd+' -d %s -l %s,walltime=172800,depend=%s -O %s -E %s -r y -q %s -N %s -W group_list=%s -t %s' % (home, cpu, depends[i], stdout, stderr, queue, runname, group, call)
       
       time.sleep(0.1)
       logger.info(xmsub)
@@ -204,6 +205,7 @@ def submit_wrapcmd(calls, home, paths, logger, runname, queue, cpu, depend, hold
    import string
    import time
    
+   group = 'cdrom'
    ids = []
    for i in range(len(calls)):
       call = calls[i]
@@ -225,9 +227,9 @@ def submit_wrapcmd(calls, home, paths, logger, runname, queue, cpu, depend, hold
       if hold:
          cmd = '%s -h' % cmd
       if not depend:
-         msub = '%s -d %s -l %s,walltime=172800 -o %s -e %s -q %s -r y -N %s %s' % (cmd, home, cpu, stdout, stderr, queue, runname, filename)
+         msub = '%s -d %s -l %s,walltime=172800 -o %s -e %s -q %s -r y -N %s -W group_list=%s %s' % (cmd, home, cpu, stdout, stderr, queue, runname, group, filename)
       else:
-         msub = '%s -d %s -l %s,walltime=172800,depend=%s -o %s -e %s -q %s -r y -N %s %s' % (cmd, home, cpu, depends[i], stdout, stderr, queue, runname, filename)
+         msub = '%s -d %s -l %s,walltime=172800,depend=%s -o %s -e %s -q %s -r y -N %s -W group_list=%s %s' % (cmd, home, cpu, depends[i], stdout, stderr, queue, runname, group, filename)
       
       time.sleep(0.1)
       logger.info(msub)
@@ -259,6 +261,7 @@ def submitjob(calls, home, paths, logger, runname, queue='cbs', cpu='nodes=1:ppn
    # create job dependencies
    depends = submit_create_dependencies(calls, depend, dependtype, n, a)
    
+   # temporary fix to group problems on cge-s2 cluster
    if calls[0].find('|') > -1 or calls[0].find('<') > -1:
       # perform wrapcmd if calls includes pipes / left-redirects
       ids = submit_wrapcmd(calls, home, paths, logger, runname, queue, cpu, depend, hold, depends)

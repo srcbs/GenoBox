@@ -43,14 +43,17 @@ def merge_bam(libs, lib_infiles, add_suffix=False, final_suffix=''):
       else:
          list_bams = lib_infiles[i]
       
-      # add suffix to outfile if set else do not
-      out_bam = lib + final_suffix
+      # add suffix to outfile if set and add alignment to path if it is not already there
+      if lib.startswith('alignment/'):
+         out_bam = lib + final_suffix
+      else:
+         out_bam = 'alignment/' + lib + final_suffix
       outfiles.append(out_bam)
       
       if len(list_bams) == 1:
          call = 'cp %s %s' % (' '.join(list_bams), out_bam)
       else:
-         sam_cmd = paths['samtools_svn_home'] + 'samtools merge'
+         sam_cmd = paths['samtools_home'] + 'samtools merge'
          sam_arg = ' %s %s' % (out_bam, ' '.join(list_bams))
          call = sam_cmd+sam_arg
       calls.append(call)
