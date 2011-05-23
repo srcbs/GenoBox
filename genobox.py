@@ -13,7 +13,7 @@
 #  abgv              Run alignment, bamprocess, genotyping, vcf-filter, vcf-annotation and bcf2ref on input fastqs
 
 import argparse
-import genobox_moab
+import genobox_modules
 import subprocess
 import logging
 import os

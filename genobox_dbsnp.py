@@ -6,7 +6,7 @@ def start_dbsnp(vcf, ex, dbsnp, o, queue, logger):
    sort vcf and the input to dbSNP
    '''
    
-   import genobox_moab
+   import genobox_modules
    import subprocess
    import os
    
@@ -19,7 +19,7 @@ def start_dbsnp(vcf, ex, dbsnp, o, queue, logger):
       os.makedirs('genotyping')
    
    # set queueing
-   paths = genobox_moab.setSystem()
+   paths = genobox_modules.setSystem()
    home = os.getcwd()
    cpuA = 'nodes=1:ppn=1,mem=512mb'
    cpuC = 'nodes=1:ppn=1,mem=2gb'
@@ -34,16 +34,16 @@ def start_dbsnp(vcf, ex, dbsnp, o, queue, logger):
    
    # submit jobs
    print "Submitting jobs"
-   dbsnp_ids = genobox_moab.submitjob(dbsnp_calls, home, paths, logger, 'run_genobox_dbsnp', queue, cpuC, False)
+   dbsnp_ids = genobox_modules.submitjob(dbsnp_calls, home, paths, logger, 'run_genobox_dbsnp', queue, cpuC, False)
    
    # release jobs #
    allids = []
    allids.extend(dbsnp_ids)
-   releasemsg = genobox_moab.releasejobs(allids)
+   releasemsg = genobox_modules.releasejobs(allids)
    
    # semaphore
    print "Waiting for jobs to finish ..."
-   genobox_moab.wait_semaphore(dbsnp_ids, home, 'dbsnp', queue, 20, 2*86400)
+   genobox_modules.wait_semaphore(dbsnp_ids, home, 'dbsnp', queue, 20, 2*86400)
    print "--------------------------------------"
    
    return o

@@ -4,8 +4,8 @@ def sam_flagstat(bam):
    '''Start samtools flagstat'''
    
    import os
-   import genobox_moab
-   paths = genobox_moab.setSystem()
+   import genobox_modules
+   paths = genobox_modules.setSystem()
    
    # set bam-file sans paths (input is abspath(bam))
    bamf = os.path.split(bam)[1]   
@@ -17,8 +17,8 @@ def bed_genomeCov(bam, genome):
    '''Start bedtools genomeCoverageBed'''
    
    import os
-   import genobox_moab
-   paths = genobox_moab.setSystem()
+   import genobox_modules
+   paths = genobox_modules.setSystem()
    
    # set bam-file sans paths (input is abspath(bam))
    bamf = os.path.split(bam)[1]   
@@ -30,8 +30,8 @@ def plot_coverage(bam):
    '''Use output from genomeCoverageBed to plot coverage plots'''
    
    import os
-   import genobox_moab
-   paths = genobox_moab.setSystem()
+   import genobox_modules
+   paths = genobox_modules.setSystem()
    
    # set bam-file sans paths (input is abspath(bam))
    bamf = os.path.split(bam)[1]   
@@ -43,8 +43,8 @@ def python_avgdepth(bam):
    '''Start genobox_bam2avgdepth.py'''
    
    import os
-   import genobox_moab
-   paths = genobox_moab.setSystem()
+   import genobox_modules
+   paths = genobox_modules.setSystem()
    
    # set bam-file sans paths (input is abspath(bam))
    bamf = os.path.split(bam)[1]   
@@ -60,14 +60,14 @@ def start_bamstats(args, bam, logger, wait=True):
    # python avgdepth
    
    import subprocess
-   import genobox_moab
+   import genobox_modules
    import os
    
    if not os.path.exists('stats'):
       os.makedirs('stats')
    
    # set queueing
-   paths = genobox_moab.setSystem()
+   paths = genobox_modules.setSystem()
    home = os.getcwd()
    cpuA = 'nodes=1:ppn=1,mem=512mb'
    cpuC = 'nodes=1:ppn=1,mem=2gb'
@@ -83,21 +83,21 @@ def start_bamstats(args, bam, logger, wait=True):
    
    # submit jobs
    print "Submitting jobs"
-   flagstat_ids = genobox_moab.submitjob(flagstat_calls, home, paths, logger, 'run_genobox_flagstat', args.queue, cpuC, False)
-   coverage_ids = genobox_moab.submitjob(coverage_calls, home, paths, logger, 'run_genobox_coverage', args.queue, cpuC, False)
-   plotcoverage_ids = genobox_moab.submitjob(plotcoverage_calls, home, paths, logger, 'run_genobox_plotcoverage', args.queue, cpuA, True, 'one2one', 1, True, *coverage_ids)
-   avgdepth_ids = genobox_moab.submitjob(avgdepth_calls, home, paths, logger, 'run_genobox_avgdepth', args.queue, cpuE, False)
+   flagstat_ids = genobox_modules.submitjob(flagstat_calls, home, paths, logger, 'run_genobox_flagstat', args.queue, cpuC, False)
+   coverage_ids = genobox_modules.submitjob(coverage_calls, home, paths, logger, 'run_genobox_coverage', args.queue, cpuC, False)
+   plotcoverage_ids = genobox_modules.submitjob(plotcoverage_calls, home, paths, logger, 'run_genobox_plotcoverage', args.queue, cpuA, True, 'one2one', 1, True, *coverage_ids)
+   avgdepth_ids = genobox_modules.submitjob(avgdepth_calls, home, paths, logger, 'run_genobox_avgdepth', args.queue, cpuE, False)
    
    # release jobs
    allids = []
    allids.extend(flagstat_ids) ; allids.extend(coverage_ids) ; allids.extend(plotcoverage_ids) ; allids.extend(avgdepth_ids)
-   releasemsg = genobox_moab.releasejobs(allids)
+   releasemsg = genobox_modules.releasejobs(allids)
    semaphore_ids = allids
    
    # wait for jobs to finish
    if wait:
       print "Waiting for jobs to finish ..." 
-      genobox_moab.wait_semaphore(semaphore_ids, home, 'bam_stats', args.queue, 20, 86400)
+      genobox_modules.wait_semaphore(semaphore_ids, home, 'bam_stats', args.queue, 20, 86400)
       print "--------------------------------------"
    else:
       print "Jobs running, continuing"

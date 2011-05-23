@@ -3,12 +3,12 @@
 import argparse
 import subprocess
 import logging
-import genobox_moab
+import genobox_modules
 
 def samFilterSort(i, q, m, o):
    '''Filters bam on quality and sort'''
    
-   paths = genobox_moab.setSystem()
+   paths = genobox_modules.setSystem()
    sam_cmd = paths['samtools_svn_home'] + 'samtools'
    
    call = '%s view -u -q %i %s |  %s sort -m %s - %s' % (sam_cmd, q, i, sam_cmd, m, o)

@@ -4,7 +4,7 @@ from __future__ import division
 
 import argparse
 import subprocess
-import genobox_moab
+import genobox_modules
 import os
 import logging
 
@@ -40,7 +40,7 @@ def vcf_sortbed(vcf, vcf_out):
 def vcf_bgzip_tabix(vcf):
    '''Run bgzip and tabix on vcf'''
    
-   paths = genobox_moab.setSystem()
+   paths = genobox_modules.setSystem()
    
    bgzip_call = paths['bin_home'] + 'bgzip -f %s' % vcf
    logger.info(bgzip_call)
@@ -69,10 +69,10 @@ def vcf_annotate_dbsnp(vcfgz, dbsnp, vcfgz_out):
 def write_indels_for_filtering(var_vcf, ex, indel_vcf):
    '''Create indels_for_filtering file '''
    
-   import genobox_moab
+   import genobox_modules
    import subprocess
    
-   paths = genobox_moab.setSystem()
+   paths = genobox_modules.setSystem()
    
    grep_call = 'grep -v \"#\" %s | grep "INDEL" | cat header.vcf - > tmp_file_indels' % (var_vcf)
    logger.info(grep_call)
@@ -111,7 +111,7 @@ logger.addHandler(hdlr)
 if args.log == 'info':
    logger.setLevel(logging.INFO)
 
-paths = genobox_moab.setSystem()
+paths = genobox_modules.setSystem()
 
 # exchange ids to numbers
 vcf_exchange_ids(args.vcf, args.ex, 'genotyping/tmp.filtered.numbers.vcf')

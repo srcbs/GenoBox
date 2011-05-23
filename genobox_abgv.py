@@ -7,7 +7,7 @@ from genobox_genotyping import *
 from genobox_vcffilter import *
 from genobox_dbsnp import *
 from genobox_bcf2ref import *
-import genobox_moab
+import genobox_modules
 import genobox_modules
 
 # test
@@ -51,7 +51,7 @@ def start_abgv(args, logger):
    start_bcf2ref(final_bcf, args.genome, args.Q, args.ex, args.dbsnp, args.rmsk, 'genotyping/indels_for_filtering.vcf', args.oref, args.queue, args.sample, logger)
    
    # remove queuing system outfiles
-   genobox_moab.rm_files(['run_genobox_*', 'semaphores.*'])
+   genobox_modules.rm_files(['run_genobox_*', 'semaphores.*'])
    
    print "Done"
    print "--------------------------------------"

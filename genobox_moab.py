@@ -315,9 +315,9 @@ def wait_semaphore(semaphore_ids, home, file_prefix, queue, check_interval, max_
    import string
    import random
    import os
-   import genobox_moab
+   import genobox_modules
    
-   paths = genobox_moab.setSystem()
+   paths = genobox_modules.setSystem()
    
    # add directory and set semaphore filename
    if not os.path.exists('semaphores/'):

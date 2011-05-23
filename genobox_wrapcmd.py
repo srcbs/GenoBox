@@ -49,7 +49,7 @@ id = subprocess.check_output(call, shell=True)
 id = id.split('\n')[1]
 
 # remove pbsfile
-genobox_moab.rm_files([filename])
+genobox_modules.rm_files([filename])
 
 # output job-id
 sys.stdout.write('%s\n' % id)

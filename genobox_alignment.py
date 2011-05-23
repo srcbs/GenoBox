@@ -3,12 +3,12 @@
 def check_fa(fa):
    '''Checks for a fa of the input fasta file. If not present creates it'''
    
-   import genobox_moab
+   import genobox_modules
    import subprocess
    import os
    import sys
    
-   paths = genobox_moab.setSystem()
+   paths = genobox_modules.setSystem()
    
    # check if fa exists
    index_suffixes = ['.amb', '.ann', '.bwt', '.pac', '.rbwt', '.rpac', '.rsa', '.sa']
@@ -54,17 +54,18 @@ def bwa_se_align(fastqs, fa, fqtypes, qtrim, alignpath, libdict, threads, queue,
    '''Start alignment using bwa of fastq reads on index'''
    
    import subprocess
-   import genobox_moab
    import genobox_modules
+   import genobox_modules
+   from genobox_classes import Moab
    import os
-   paths = genobox_moab.setSystem()
+   paths = genobox_modules.setSystem()
    home = os.getcwd()
    
    # setting cpus
-   cpuA = 'nodes=1:ppn=1,mem=5gb'
-   cpuC = 'nodes=1:ppn=1,mem=2gb'
+   cpuA = 'nodes=1:ppn=1,mem=5gb,walltime=172800'
+   cpuC = 'nodes=1:ppn=1,mem=2gb,walltime=172800'
    if threads != 1:
-      cpuB = 'nodes=1:ppn=%s,mem=5gb' % threads
+      cpuB = 'nodes=1:ppn=%s,mem=5gb,walltime=172800' % threads
    else:
       cpuB = cpuA
    
@@ -97,34 +98,36 @@ def bwa_se_align(fastqs, fa, fqtypes, qtrim, alignpath, libdict, threads, queue,
       call = '%sbwa samse -r \"%s\" %s %s %s | %ssamtools view -Sb - > %s' % (paths['bwa_home'], '\\t'.join(RG[fq]), fa, saifiles[i], fq, paths['samtools_home'], bamfile)
       bwa_samse.append(call)
       
+   
    # submit jobs
-   allids = []
-   
-   bwa_alignids = genobox_moab.submitjob(bwa_align, home, paths, logger, 'run_genobox_bwaalign', queue, cpuB, False)
-   bwa_samseids = genobox_moab.submitjob(bwa_samse, home, paths, logger, 'run_genobox_bwasamse', queue, cpuA, True, 'one2one', 1, True, *bwa_alignids)
-   
-   allids.extend(bwa_alignids) ; allids.extend(bwa_samseids)
-   
+   # create moab instance for the align_calls and dispatch to queue
+   bwa_align_moab = Moab(bwa_align, logfile=logger, runname='run_genobox_bwaalign', queue=queue, cpu=cpuB)
+   bwa_samse_moab = Moab(bwa_samse, logfile=logger, runname='run_genobox_bwasamse', queue=queue, cpu=cpuA, depend=True, depend_type='one2one', depend_val=[1], hold=True, depend_ids=bwa_align_moab.ids)
+      
    # release jobs
-   releasemsg = genobox_moab.releasejobs(allids)
-   
-   return (bwa_samseids, bamfiles_dict)
+   print "Releasing jobs"
+   bwa_align_moab.release()
+   bwa_samse_moab.release()
+      
+   return (bwa_samse_moab.ids, bamfiles_dict)
+
 
 def bwa_pe_align(pe1, pe2, fa, fqtypes_pe1, fqtypes_pe2, qtrim, alignpath, a, libdict, threads, queue, logger):
    '''Start alignment using bwa of paired end fastq reads on index'''
    
    import subprocess
-   import genobox_moab
    import genobox_modules
+   import genobox_modules
+   from genobox_classes import Moab
    import os
-   paths = genobox_moab.setSystem()
+   paths = genobox_modules.setSystem()
    home = os.getcwd()
    
    # setting cpus
-   cpuA = 'nodes=1:ppn=1,mem=5gb'
-   cpuC = 'nodes=1:ppn=1,mem=2gb'
+   cpuA = 'nodes=1:ppn=1,mem=5gb,walltime=172800'
+   cpuC = 'nodes=1:ppn=1,mem=2gb,walltime=172800'
    if threads != 1:
-      cpuB = 'nodes=1:ppn=%s,mem=5gb' % threads
+      cpuB = 'nodes=1:ppn=%s,mem=5gb,walltime=172800' % threads
    else:
       cpuB = cpuA
    
@@ -176,36 +179,40 @@ def bwa_pe_align(pe1, pe2, fa, fqtypes_pe1, fqtypes_pe2, qtrim, alignpath, a, li
       bwa_sampe_calls.append(sampecall)
       
    
+
    # submit jobs
-   allids = []
-   bwa_alignids1 = genobox_moab.submitjob(bwa_align1_calls, home, paths, logger, 'run_genobox_bwaalign1', queue, cpuB, False)
-   bwa_alignids2 = genobox_moab.submitjob(bwa_align2_calls, home, paths, logger, 'run_genobox_bwaalign2', queue, cpuB, False)
-   
+   # create moab instance for the align_calls and dispatch to queue
+   bwa_align1_moab = Moab(bwa_align1_calls, logfile=logger, runname='run_genobox_bwaalign1', queue=queue, cpu=cpuB)
+   bwa_align2_moab = Moab(bwa_align2_calls, logfile=logger, runname='run_genobox_bwaalign2', queue=queue, cpu=cpuB)
+
    # set jobids in the correct way
    bwa_alignids = []
-   for i in range(len(bwa_alignids1)):
-      bwa_alignids.append(bwa_alignids1[i])
-      bwa_alignids.append(bwa_alignids2[i])
-   
+   for i in range(len(bwa_align1_moab.ids)):
+      bwa_alignids.append(bwa_align1_moab.ids[i])
+      bwa_alignids.append(bwa_align2_moab.ids[i])
+
    # submit sampe
-   bwa_sampeids = genobox_moab.submitjob(bwa_sampe_calls, home, paths, logger, 'run_genobox_bwasampe', queue, cpuA, True, 'conc', 2, True, *bwa_alignids)
-   
+   bwa_sampe_moab = Moab(bwa_sampe_calls, logfile=logger, runname='run_genobox_bwasampe', queue=queue, cpu=cpuA, depend=True, depend_type='conc', depend_val=[2], hold=True, depend_ids=bwa_alignids)
+      
    # release jobs
-   allids.extend(bwa_alignids) ; allids.extend(bwa_sampeids)
-   releasemsg = genobox_moab.releasejobs(allids)
-   
-   return (bwa_sampeids, bamfiles_dict)
-   
+   print "Releasing jobs"
+   bwa_align1_moab.release()
+   bwa_align2_moab.release()
+   bwa_sampe_moab.release()
+      
+   return (bwa_sampe_moab.ids, bamfiles_dict)
+      
 
 def start_alignment(args, logger):
    '''Start alignment of fastq files using BWA'''
    
-   import genobox_moab
    import genobox_modules
+   import genobox_modules
+   from genobox_classes import Semaphore
    import subprocess
    import os
    
-   paths = genobox_moab.setSystem()
+   paths = genobox_modules.setSystem()
    home = os.getcwd()
    semaphore_ids = []
    bamfiles = dict()
@@ -258,7 +265,10 @@ def start_alignment(args, logger):
    
    # wait for jobs to finish
    print "Waiting for jobs to finish ..." 
-   genobox_moab.wait_semaphore(semaphore_ids, home, 'bwa_alignment', args.queue, 60, 86400)
+   
+   s = Semaphore(semaphore_ids, home, 'bwa_alignment', args.queue, 60, 86400)
+   s.wait()
+   
    print "--------------------------------------"
    
    # return bamfiles   

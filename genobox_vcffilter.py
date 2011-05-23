@@ -14,7 +14,7 @@ def start_vcffilter(bcf, genome, caller, Q, ex, rmsk, ab, prune, o, queue, dir, 
    pruning of variants within N nt of each other
    '''
    
-   import genobox_moab
+   import genobox_modules
    import subprocess
    import os
    
@@ -22,7 +22,7 @@ def start_vcffilter(bcf, genome, caller, Q, ex, rmsk, ab, prune, o, queue, dir, 
       os.makedirs('genotyping')
    
    # set queueing
-   paths = genobox_moab.setSystem()
+   paths = genobox_modules.setSystem()
    home = os.getcwd()
    cpuA = 'nodes=1:ppn=1,mem=512mb'
    cpuC = 'nodes=1:ppn=1,mem=2gb'
@@ -41,16 +41,16 @@ def start_vcffilter(bcf, genome, caller, Q, ex, rmsk, ab, prune, o, queue, dir, 
    
    # submit jobs
    print "Submitting jobs"
-   vcffilter_ids = genobox_moab.submitjob(vcffilter_calls, home, paths, logger, 'run_genobox_vcffilter', queue, cpuE, False)
+   vcffilter_ids = genobox_modules.submitjob(vcffilter_calls, home, paths, logger, 'run_genobox_vcffilter', queue, cpuE, False)
    
    # release jobs #
    allids = []
    allids.extend(vcffilter_ids)
-   releasemsg = genobox_moab.releasejobs(allids)
+   releasemsg = genobox_modules.releasejobs(allids)
    
    # semaphore
    print "Waiting for jobs to finish ..."
-   genobox_moab.wait_semaphore(vcffilter_ids, home, 'vcffilter', queue, 20, 2*86400)
+   genobox_modules.wait_semaphore(vcffilter_ids, home, 'vcffilter', queue, 20, 2*86400)
    print "--------------------------------------"
    
    # return filename of final vcf

@@ -1,21 +1,5 @@
 #!/usr/bin/python
 
-## For testing ##
-
-# create calls
-#align_calls = ['bwa aln -t 4 input1.file reference.fasta > output1.sai', 'bwa aln -t 4 input2.file reference.fasta > output2.sai']
-#samse_calls = ['bwa samse output1.sai reference.fasta input1.file > input1.aln.bam', 'bwa samse output2.sai reference.fasta input2.file > input2.aln.bam']
-
-# create moab instance for the align_calls and dispatch to queue
-#align_moab = Moab(align_calls, runname='run_align', cpu='nodes=1:ppn=4,mem=8gb,walltime=43200')
-#align_ids = align_moab.dispatch()
-#samse_moab = Moab(samse_calls, runname='run_samse', cpu='nodes=1:ppn=1,mem=2gb,walltime=43200', depend=True, depend_type='one2one', depend_val = [1], align_ids)
-#samse_ids = samse_moab.dispatch()
-
-# release jobs
-#align_moab.releasejobs()
-#samse_moab.releasejobs()
-
 
 # class
 class Moab:
@@ -26,10 +10,10 @@ class Moab:
          'conc' makes job 1 dependent on n first ids, job 2 dependent on next n ids ...
          'complex' takes several integers in a list as input and makes the jobs dependent on the number of ids given. Eg.[2,1] means that the first job will be dependent on the first 2 ids and the second job will be dependent on the 3 id ...
       
-      Jobs are submitted as hold by default and should be released using Moab.releasejobs().
+      Jobs are submitted as hold by default and should be released using Moab.release().
    '''
    
-   def __init__(self, calls, logfile=None, runname='run_test', queue='cbs', group='cdrom', cpu='nodes=1:ppn=1,mem=2gb,walltime=43200', depend=False, depend_type='one2one', depend_val=[], hold=True, ids=[]):
+   def __init__(self, calls, logfile=None, runname='run_test', queue='cbs', group='cdrom', cpu='nodes=1:ppn=1,mem=2gb,walltime=43200', depend=False, depend_type='one2one', depend_val=[], hold=True, depend_ids=[]):
       '''Constructor for Moab class'''
       self.calls = calls
       self.runname = runname
@@ -41,11 +25,14 @@ class Moab:
       self.depend_type = depend_type
       self.depend_val = depend_val
       self.hold = hold
-      self.ids = ids
+      self.depend_ids = depend_ids
+      
+      # put jobs in queue upon construction
+      self.dispatch()
    
    def __repr__(self):
       '''Return string of attributes'''
-      msg = 'Moab(%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)' % ("["+", ".join(self.calls)+"]", self.logfile, self.runname, self.queue, self.group, self.cpu, str(self.depend), self.depend_type, "["+", ".join(map(str,self.depend_val))+"]", str(self.hold), "["+", ".join(self.ids)+"]")
+      msg = 'Moab(%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)' % ("["+", ".join(self.calls)+"]", self.logfile, self.runname, self.queue, self.group, self.cpu, str(self.depend), self.depend_type, "["+", ".join(map(str,self.depend_val))+"]", str(self.hold), "["+", ".join(self.depend_ids)+"]")
       return msg
    
    def get_logger(self):
@@ -54,14 +41,18 @@ class Moab:
       if self.logfile:
          import logging
          
-         logger = logging.getLogger('moab_submissions')
-         hdlr = logging.FileHandler('%s' % self.logfile)
-         formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
-         hdlr.setFormatter(formatter)
-         logger.addHandler(hdlr) 
-         logger.setLevel(logging.INFO)
-         
-         return logger
+         # if already a logger do nothing and return
+         # else create logger with given logfile
+         if isinstance(self.logfile, logging.Logger):
+            return self.logfile
+         else:
+            logger = logging.getLogger('moab_submissions')
+            hdlr = logging.FileHandler('%s' % self.logfile)
+            formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
+            hdlr.setFormatter(formatter)
+            logger.addHandler(hdlr) 
+            logger.setLevel(logging.INFO)
+            return logger
       else:
          return None
    
@@ -78,7 +69,7 @@ class Moab:
          depends = None
       else:
             if self.depend_type == 'one2one':
-               depends = self.ids
+               depends = self.depend_ids
             
             elif self.depend_type == 'expand':
                n = int(self.depend_val[0])
@@ -87,24 +78,24 @@ class Moab:
                for j in range(len(self.calls)):
                   c = c + 1
                   if c < int(n):
-                     depends.append(ids[0])
+                     depends.append(self.depend_ids[0])
                   if c == int(n):
-                     depends.append(ids.pop(0))
+                     depends.append(self.depend_ids.pop(0))
                      c = 0
             
             elif self.depend_type == 'conc':
                n = int(self.depend_val[0])
                depends = []
                for j in range(len(self.calls)):
-                  s = ':'.join(a[:int(n)])
+                  s = ':'.join(self.depend_ids[:int(n)])
                   depends.append(s)
-                  a = a[int(n):]
+                  self.depend_ids = self.depend_ids[int(n):]
             
             elif self.depend_type == 'complex':
                old_index = 0
                depends = []
                for index in self.depend_val:
-                  s = ':'.join(a[old_index:(index+old_index)])
+                  s = ':'.join(self.depend_ids[old_index:(index+old_index)])
                   depends.append(s)
                   old_index=index
             else:
@@ -214,12 +205,12 @@ class Moab:
          #rm_files([filename])
       return ids
      
-   def releasejobs(self):
+   def release(self):
       '''Release submitted jobs from hold'''
       
       import subprocess
       
-      print  "Releasing jobs"
+      #print  "Releasing jobs"
       while len(self.ids) > 0:
          if len(self.ids) > 199:
             cmd = 'mjobctl -u user \"%s\"' % (' ').join(self.ids[:199])
@@ -252,4 +243,219 @@ class Moab:
          # perform xmsub if calls does not include pipes (can have right-redirects)
          self.ids = self.submit_xmsub(depends, logger)
       
-      return self.ids
+      return
+
+
+class Semaphore:
+   '''Wait for files to be created, times are in seconds'''
+   
+   def __init__(self, semaphore_ids, home, file_prefix, queue, check_interval, max_time):
+      '''Constructor for Semaphore class'''
+      self.semaphore_ids = semaphore_ids
+      self.home = home
+      self.file_prefix = file_prefix
+      self.queue = queue
+      self.check_interval = check_interval
+      self.max_time = max_time
+   
+   def wait(self):
+      '''Wait for files to be created'''
+      
+      from time import sleep
+      import string
+      import random
+      import os
+      import genobox_modules
+      import subprocess
+      
+      paths = genobox_modules.setSystem()
+      
+      # add directory and set semaphore filename
+      if not os.path.exists('semaphores/'):
+         os.makedirs('semaphores/')
+      
+      rand = ''.join(random.choice(string.ascii_uppercase + string.digits) for x in range(10))
+      semaphore_file = 'semaphores/' + self.file_prefix + '.' + rand
+      semaphore_file_err = 'log/' + self.file_prefix + '.' + rand + '.err'
+      
+      # submit job 
+      depends = ':'.join(self.semaphore_ids)
+      xmsub = '%sxmsub -d %s -l ncpus=1,mem=10mb,walltime=180,depend=%s -O %s -q %s -N semaphores -E %s -r y -t echo done' % (paths['pyscripts_home'], self.home, depends, semaphore_file, self.queue, semaphore_file_err)
+      dummy_id = subprocess.check_output(xmsub, shell=True)
+      
+      # check for file to appear
+      cnt = self.max_time
+      while cnt > 0:
+         if os.path.isfile(semaphore_file):
+            break
+         cnt -= self.check_interval
+         sleep(self.check_interval)
+      if cnt <= 0:
+         raise SystemExit('%s did not finish in %is' % ())
+
+class Lib:
+   '''class for use, construct and read from library file'''
+   
+   def __init__(self, f, mapq, libs, pl, sample):
+      '''Constructor for lib class'''
+      self.f = f
+      self.mapq = mapq
+      self.libs = libs
+      self.pl = pl
+      self.sample = sample
+   
+   def __repr__(self):
+      '''Return string of attributes'''
+      msg = 'Lib(%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)' % (f, "["+", ".join(self.mapq)+"]", "["+", ".join(self.libs)+"]", "["+", ".join(self.pl)+"]", self.sample)
+      return msg
+   
+   def read(self):
+      '''Reads in library file and returns dict with ID as keys'''
+      
+      fh = open(self.f, 'r')
+      header = fh.readline().rstrip().split('\t')
+      
+      # fill dict with data
+      id_dict = dict()
+      for line in fh:
+         fields = line.rstrip().split('\t')
+         if len(header) == len(fields):
+            id_dict[fields[0]] = fields[0:]
+         else:
+            raise ValueError('Line \"%s\" do not have same number of fields as header')
+      
+      id_dict['header'] = header
+      return id_dict
+   
+   def create(self):
+      '''Create library dict from inputs'''
+      
+      import sys
+      
+      # check lengths of mapq and libs
+      if len(self.mapq) < len(self.input):
+         sys.stderr.write("warning: length of mapq is shorter than length of inputfiles, reusing %i\n" % self.mapq[0])   
+         while len(self.mapq) < len(self.input):
+            self.mapq.append(self.mapq[0])
+      if len(self.libs) < len(self.input):
+         sys.stderr.write("warning: length of libs is shorter than length of inputfiles, reusing %s\n" % self.libs[0])   
+         while len(self.libs) < len(self.input):
+            self.libs.append(self.libs[0])
+      
+      # create dict
+      id_dict = dict()
+      c = 0
+      for i,input in enumerate(input):
+         id = '%s_%i' % (self.sample, c + 1)
+         id_dict[id] = [id, input, str(self.mapq[c]), self.libs[c], self.pl, self.sample]
+         c = c + 1
+      
+      id_dict['header'] = ['ID', 'Data', 'MAPQ', 'LB', 'PL', 'SM']
+      
+      # write to disk
+      fh = open('libs.%s.txt' % self.sample, 'w')
+      fh.write('%s\n' % '\t'.join(id_dict['header']))
+      for key in sorted(id_dict.keys()):
+         if key == 'header':
+            continue
+         fh.write('%s\n' % '\t'.join(id_dict[key]))
+      return (id_dict, 'libs.%s.txt' % self.sample)
+   
+   
+   def update(self, key_col, new_col, val_dict, force=False):
+      '''Update libfile with a new column of data'''
+      
+      import sys
+      
+      # read in current file
+      fh = open(self.f, 'r')
+      header = fh.readline().rstrip().split('\t')
+      data = fh.read().split('\n')
+      if data[-1] == '':
+         data = data[:-1]
+      fh.close()
+      
+      # check length of data and new val_dict
+      if len(data) == len(val_dict):
+         pass
+      else:
+         raise ValueError('Rows of libfile (%i) does not match length of new val_dict (%i)' % (len(data), len(val_dict)))
+      
+      # check if column already exist, if forced then remove old column
+      if new_col in header:
+         if force == False:
+            sys.stderr.write('column %s already exists, %s not updated\n' % (new_col, self.f))
+            return 
+         else:
+            n = header.index(new_col)
+            header.remove(new_col)
+            new_data = []
+            for line in data:
+               fields = line.split('\t')
+               new_fields = fields[:n] + fields[(n+1):]
+               new_data.append('\t'.join(new_fields))
+            data = new_data
+      
+      # append data
+      fh = open(self.f, 'w')
+      header.append(new_col)
+      fh.write('%s\n' % '\t'.join(header))
+      for line in data:
+         fields = line.split('\t')
+         for key in val_dict.keys():
+            if fields[header.index(key_col)] == key:
+               new_line = '%s\t%s\n' % (line, val_dict[key])
+               fh.write(new_line)
+               break
+      
+      fh.close()
+      return
+   
+   def getRG(self, index):
+      '''Return read group from lib_dict with index as key'''
+      
+      allowedRGs = ['ID', 'CN', 'DS', 'DT', 'FO', 'KS', 'LB', 'PG', 'PI', 'PL', 'PU', 'SM']
+      
+      id_dict = self.read(self.f)
+      
+      RG = dict()
+      #RG = '\@RG\tID:foo\tSM:bar'
+      header = self.f['header']
+      for key,value in id_dict.items():
+         if key == 'header':
+            continue
+         
+         currRG = ['@RG']
+         for h in header:
+            if h in allowedRGs:
+               currRG.append('%s:%s' % (h, value[header.index(h)]))
+         RG[value[header.index(index)]] = currRG
+      return RG
+   
+   def get_bamlibs(self):
+      '''Read library file and return dict'''
+      
+      from collections import defaultdict
+      
+      fh = open(self.f, 'r')
+      header = fh.readline().rstrip().split('\t')
+      
+      # check if bamfiles are written in libfile
+      if 'BAM' in header:
+         pass
+      else:
+         raise IndexError('There is no column \"BAM\" in the libfile (%s)' % libfile)
+      
+      bam2lib = {}
+      lib2bam = defaultdict(list)
+      for line in fh:
+         fields = line.rstrip().split('\t')
+         bam2lib[fields[header.index('BAM')]] = (fields[header.index('MAPQ')], fields[header.index('LB')])
+         
+         lib2bam[fields[header.index('LB')]].append(fields[header.index('BAM')])
+      
+      # unique on lib2bam
+      for key,values in lib2bam.items():
+         lib2bam[key] = unique(values)
+      
+      return (bam2lib, lib2bam)

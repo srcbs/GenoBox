@@ -4,7 +4,7 @@ from __future__ import division
 
 import argparse
 import subprocess
-import genobox_moab
+import genobox_modules
 import os
 import logging
 
@@ -25,7 +25,7 @@ def get_genome(chr_file):
 def bcf2varfilter(bcf, genome, Q, vcf_prefix):
    '''Runs bcf through varfilter and writes to vcf'''
    
-   paths = genobox_moab.setSystem()
+   paths = genobox_modules.setSystem()
    bcf_cmd = paths['samtools_svn_home'] + 'bcftools view'
    calls = []
    vcf_files = []
@@ -182,7 +182,7 @@ def vcf_filter_allelic_balance(vcf, threshold, caller, vcf_out):
 def vcf_filter_prune(vcf, prune, vcfgz_out):
    '''Prune variants within N nt of each other'''
    
-   paths = genobox_moab.setSystem()
+   paths = genobox_modules.setSystem()
    
    if prune != 0:
       # create header
@@ -215,10 +215,10 @@ def vcf_filter_prune(vcf, prune, vcfgz_out):
 def write_indels_for_filtering(vcf, ex):
    '''Extracts positions that should not be high confidence because they are deletions (not removed in vcf-file)'''
    
-   import genobox_moab
+   import genobox_modules
    import subprocess
    
-   paths = genobox_moab.setSystem()
+   paths = genobox_modules.setSystem()
    
    # extracting header and indels using perl oneliner
    if not ex or ex == 'None':
@@ -272,7 +272,7 @@ if args.log == 'info':
    logger.setLevel(logging.INFO)
 
 # set queuing
-paths = genobox_moab.setSystem()
+paths = genobox_modules.setSystem()
 home = os.getcwd()
 
 # get genome file
@@ -300,5 +300,5 @@ vcf_filter_prune('genotyping/tmp.flt.all.rmsk.hetfilt.abfilt.vcf', args.prune, a
 write_indels_for_filtering(args.o, args.ex)
 
 # remove temporary files
-genobox_moab.rm_files(['genotyping/tmp.flt*'])
+genobox_modules.rm_files(['genotyping/tmp.flt*'])
 
