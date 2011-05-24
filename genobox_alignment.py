@@ -55,7 +55,6 @@ def bwa_se_align(fastqs, fa, fqtypes, qtrim, alignpath, libdict, threads, queue,
    
    import subprocess
    import genobox_modules
-   import genobox_modules
    from genobox_classes import Moab
    import os
    paths = genobox_modules.setSystem()
@@ -102,7 +101,7 @@ def bwa_se_align(fastqs, fa, fqtypes, qtrim, alignpath, libdict, threads, queue,
    # submit jobs
    # create moab instance for the align_calls and dispatch to queue
    bwa_align_moab = Moab(bwa_align, logfile=logger, runname='run_genobox_bwaalign', queue=queue, cpu=cpuB)
-   bwa_samse_moab = Moab(bwa_samse, logfile=logger, runname='run_genobox_bwasamse', queue=queue, cpu=cpuA, depend=True, depend_type='one2one', depend_val=[1], hold=True, depend_ids=bwa_align_moab.ids)
+   bwa_samse_moab = Moab(bwa_samse, logfile=logger, runname='run_genobox_bwasamse', queue=queue, cpu=cpuA, depend=True, depend_type='one2one', depend_val=[1], depend_ids=bwa_align_moab.ids)
       
    # release jobs
    print "Releasing jobs"
@@ -116,7 +115,6 @@ def bwa_pe_align(pe1, pe2, fa, fqtypes_pe1, fqtypes_pe2, qtrim, alignpath, a, li
    '''Start alignment using bwa of paired end fastq reads on index'''
    
    import subprocess
-   import genobox_modules
    import genobox_modules
    from genobox_classes import Moab
    import os
@@ -192,7 +190,7 @@ def bwa_pe_align(pe1, pe2, fa, fqtypes_pe1, fqtypes_pe2, qtrim, alignpath, a, li
       bwa_alignids.append(bwa_align2_moab.ids[i])
 
    # submit sampe
-   bwa_sampe_moab = Moab(bwa_sampe_calls, logfile=logger, runname='run_genobox_bwasampe', queue=queue, cpu=cpuA, depend=True, depend_type='conc', depend_val=[2], hold=True, depend_ids=bwa_alignids)
+   bwa_sampe_moab = Moab(bwa_sampe_calls, logfile=logger, runname='run_genobox_bwasampe', queue=queue, cpu=cpuA, depend=True, depend_type='conc', depend_val=[2], depend_ids=bwa_alignids)
       
    # release jobs
    print "Releasing jobs"
@@ -206,7 +204,6 @@ def bwa_pe_align(pe1, pe2, fa, fqtypes_pe1, fqtypes_pe2, qtrim, alignpath, a, li
 def start_alignment(args, logger):
    '''Start alignment of fastq files using BWA'''
    
-   import genobox_modules
    import genobox_modules
    from genobox_classes import Semaphore
    import subprocess

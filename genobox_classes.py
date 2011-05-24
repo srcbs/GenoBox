@@ -74,13 +74,15 @@ class Moab:
             elif self.depend_type == 'expand':
                n = int(self.depend_val[0])
                depends = []
+               depend_ids = self.depend_ids     # do not want to remove from self.depend_ids because it will remove the ids from input class instance (eg. other calls)
                c = 0
                for j in range(len(self.calls)):
                   c = c + 1
                   if c < int(n):
-                     depends.append(self.depend_ids[0])
+                     depends.append(depend_ids[0])
                   if c == int(n):
-                     depends.append(self.depend_ids.pop(0))
+                     depends.append(depend_ids[0])
+                     depend_ids = depend_ids[1:]
                      c = 0
             
             elif self.depend_type == 'conc':
@@ -143,11 +145,13 @@ class Moab:
          # submit
          try:
             id = subprocess.check_output(xmsub, shell=True)
+            #print id
          except:
             print 'Job error, waiting 1m'
             time.sleep(60)
             id = subprocess.check_output(xmsub, shell=True)
          ids.append(id.split('\n')[1])
+         #print ids
       return(ids)
    
    def submit_wrapcmd(self, depends, logger):
@@ -195,31 +199,17 @@ class Moab:
          # submit
          try:
             id = subprocess.check_output(msub, shell=True)
+            #print id
          except:
             print 'Job error, waiting 1m'
             time.sleep(60)
-            id = subprocess.check_output(xmsub, shell=True)
+            id = subprocess.check_output(msub, shell=True)
          ids.append(id.split('\n')[1])
          
          # remove pbsjob file
          #rm_files([filename])
+         #print ids
       return ids
-     
-   def release(self):
-      '''Release submitted jobs from hold'''
-      
-      import subprocess
-      
-      #print  "Releasing jobs"
-      while len(self.ids) > 0:
-         if len(self.ids) > 199:
-            cmd = 'mjobctl -u user \"%s\"' % (' ').join(self.ids[:199])
-            del self.ids[:199]
-            out = subprocess.check_output(cmd, shell=True)
-         else:
-            cmd = 'mjobctl -u user \"%s\"' % (' ').join(self.ids)
-            out = subprocess.check_output(cmd, shell=True)
-            break
    
    def dispatch(self):
       '''Submit job to queue, if depend=True dependent jobids should be given as ids. 
@@ -243,7 +233,22 @@ class Moab:
          # perform xmsub if calls does not include pipes (can have right-redirects)
          self.ids = self.submit_xmsub(depends, logger)
       
-      return
+   
+   def release(self):
+      '''Release submitted jobs from hold'''
+      
+      import subprocess
+      
+      while len(self.ids) > 0:
+         if len(self.ids) > 199:
+            cmd = 'mjobctl -u user \"%s\"' % (' ').join(self.ids[:199])
+            del self.ids[:199]
+            out = subprocess.check_output(cmd, shell=True)
+         else:
+            cmd = 'mjobctl -u user \"%s\"' % (' ').join(self.ids)
+            out = subprocess.check_output(cmd, shell=True)
+            break
+   
 
 
 class Semaphore:

@@ -104,25 +104,25 @@ parser_vcffilter.add_argument('--ex', help='exhange chromosome names using file 
 parser_vcffilter.add_argument('--rmsk', help='rmsk to use', default=None, action=set_abspath())
 parser_vcffilter.add_argument('--ab', help='allelic balance threshold [0.5] (no filter)', type=float, default=0.50, action=required_interval(0,1))
 parser_vcffilter.add_argument('--prune', help='distance (nt) to prune within [0] (no filter)', type=int, default=0, action=required_interval(0,100000000))
-parser_vcffilter.add_argument('--o', help='output vcffile [snpcalls.vcf.gz]', default='snpcalls.vcf.gz')
+parser_vcffilter.add_argument('--o', help='output vcf.gz [genotyping/snpcalls.vcf.gz]', default='genotyping/snpcalls.vcf.gz')
 
 # dbsnp
 parser_dbsnp = subparsers.add_parser('dbsnp', help='Annotate vcf file with dbSNP information', parents=[parent_parser])
-parser_dbsnp.add_argument('--vcf', help='input vcf file', action=set_abspath())
+parser_dbsnp.add_argument('--vcf', help='input vcf or vcf.gz file', action=set_abspath())
 parser_dbsnp.add_argument('--ex', help='exhange chromosome names using file [None]', default=None, action=set_abspath())
 parser_dbsnp.add_argument('--dbsnp', help='dbsnp file to use (vcf.gz format)', default=None, action=set_abspath())
-parser_dbsnp.add_argument('--o', help='output vcf.gz [snpcalls.dbsnp.vcf.gz]', default='snpcalls.vcf.gz')
+parser_dbsnp.add_argument('--o', help='output vcf.gz [genotyping/snpcalls.dbsnp.vcf.gz]', default='genotyping/snpcalls.dbsnp.vcf.gz')
 
 # bcf2ref
 parser_bcf2ref = subparsers.add_parser('bcf2ref', help='Extract high confidence same-as-reference positions', parents=[parent_parser])
-parser_bcf2ref.add_argument('--bcf', help='input bcf var file', action=set_abspath())
+parser_bcf2ref.add_argument('--bcf', help='input bcf file', action=set_abspath())
 parser_bcf2ref.add_argument('--genome', help='file containing genome to analyse, format: chrom\tchrom_len\tchrom_short_name\tploidy\tmin_depth\tmax_depth\n', default=None, action=set_abspath())
 parser_bcf2ref.add_argument('--Q', help='minimum quality score', type=float, default=20.0, action=required_interval(0,10000))
 parser_bcf2ref.add_argument('--ex', help='exhange chromosome names using file [None]', default=None, action=set_abspath())
 parser_bcf2ref.add_argument('--dbsnp', help='dbsnp file to use (vcf.gz format)', default=None, action=set_abspath())
 parser_bcf2ref.add_argument('--rmsk', help='rmsk to use', default=None, action=set_abspath())
 parser_bcf2ref.add_argument('--indels', help='indels vcf to remove', default=None, action=set_abspath())
-parser_bcf2ref.add_argument('--o', help='output prefix for ref.ann.vcf.gz files [refcalls]', default='refcalls')
+parser_bcf2ref.add_argument('--o', help='output prefix for ref.ann.vcf.gz files [genotyping/refcalls.flt.vcf.gz]', default='genotyping/refcalls.flt.vcf.gz')
 
 
 # abgv
@@ -197,7 +197,7 @@ elif args.module == 'bamprocess':
 
 elif args.module == 'bamstats':
    from genobox_bamstats import *
-   start_bamstats(args, logger)
+   start_bamstats(args, args.bam, logger)
 
 elif args.module == 'genotyping':
    from genobox_genotyping import *
@@ -222,23 +222,4 @@ elif args.module == 'abgv':
 else:
    pass
 
-
-## testing using kleb data ##
-
-# echo "gi|206564770|gb|CP000964.1|\t5641239\tchr\thaploid\t10\t100" > kleb_pneu.genome
-# genobox.py abgv --pe1 Kleb-10-213361_2_1_sequence.trim.fq --pe2 Kleb-10-213361_2_2_sequence.trim.fq --n 16 --sample Kleb-10-213361 --mapq 30 30 --libs A A --genome kleb_pneu.genome --fa kleb_pneu.fa --ab 0.2 --prune 5
-
-
-# test on 1000G data
-# genobox.py alignment --se SRR002081se.recal.fastq SRR002082se.recal.fastq --pe1 SRR002137pe_1.recal.fastq SRR002138pe_1.recal.fastq --pe2 SRR002137pe_2.recal.fastq SRR002138pe_2.recal.fastq --n 16 --sample NA12891 --fa /panvol1/simon/databases/hs_ref37_rCRS/hs_ref_GRCh37_all.fa
-
-# test on Aus Aboriginal
-# create libs file
-
-#echo 'ID\tData\tMAPQ\tLB\tCN\tPL\tSM' > libs.AusAboriginal.txt
-#ll data/*.trim | perl -ane 'BEGIN{$count=0} ; if ($F[8] =~ m/.*\/(\w)/) {$count++ ; $id ="AusAboriginal_$count" ; print "$id\t/panvol1/simon/projects/AusAboriginal/$F[8]\t30\tlib$1\tBGI\tILLUMINA\tAusAboriginal\n" } ' >> libs.AusAboriginal.txt
-
-# genobox.py abgv --se data/*.trim --fa /panvol1/simon/databases/hs_ref37_rCRS/hs_ref_GRCh37_all.fa  --libfile libs.AusAboriginal.txt --genome build37_rCRS.genome --prior flat --pp 0.0001 --Q 40 --rmsk rmsk_build37_rCRS.number.sort.genome --ex gi2number.build37_rCRS --ab 0.2 --prune 5 --n 4 --ovar genotyping/AusAboriginal.var.flt.vcf.gz --oref genotyping/AusAboriginal.ref.flt.vcf.gz
-
-#args.se = ['/panvol1/simon/projects/AusAboriginal/data/A12.fq.cleaned.truncated.trim', '/panvol1/simon/projects/AusAboriginal/data/A18.fq.cleaned.truncated.trim', '/panvol1/simon/projects/AusAboriginal/data/C12.fq.cleaned.truncated.trim', '/panvol1/simon/projects/AusAboriginal/data/C18.fq.cleaned.truncated.trim', '/panvol1/simon/projects/AusAboriginal/data/C6L_1_1.cleaned.truncated.trim', '/panvol1/simon/projects/AusAboriginal/data/C6L_1_1_d2.cleaned.truncated.trim', '/panvol1/simon/projects/AusAboriginal/data/C6L_1_2.cleaned.truncated.trim', '/panvol1/simon/projects/AusAboriginal/data/C6L_2_1_d2.cleaned.truncated.trim', '/panvol1/simon/projects/AusAboriginal/data/C6_1_1.cleaned.truncated.trim', '/panvol1/simon/projects/AusAboriginal/data/C6_1_1_d2.cleaned.truncated.trim', '/panvol1/simon/projects/AusAboriginal/data/C6_1_2_01.cleaned.truncated.trim', '/panvol1/simon/projects/AusAboriginal/data/C6_1_2_02.cleaned.truncated.trim', '/panvol1/simon/projects/AusAboriginal/data/C6_2_1.cleaned.truncated.trim', '/panvol1/simon/projects/AusAboriginal/data/C6_2_1_d2.cleaned.truncated.trim', '/panvol1/simon/projects/AusAboriginal/data/C8_1b_d2.cleaned.truncated.trim', '/panvol1/simon/projects/AusAboriginal/data/C8_2b_d2.cleaned.truncated.trim', '/panvol1/simon/projects/AusAboriginal/data/C8_3b_d2.cleaned.truncated.trim', '/panvol1/simon/projects/AusAboriginal/data/C8_4b_d2.cleaned.truncated.trim', '/panvol1/simon/projects/AusAboriginal/data/D12_1.fq.cleaned.truncated.trim', '/panvol1/simon/projects/AusAboriginal/data/D12_2.fq.cleaned.truncated.trim', '/panvol1/simon/projects/AusAboriginal/data/D18.fq.cleaned.truncated.trim', '/panvol1/simon/projects/AusAboriginal/data/D7L_1_1.cleaned.truncated.trim', '/panvol1/simon/projects/AusAboriginal/data/D7L_1_2.cleaned.truncated.trim', '/panvol1/simon/projects/AusAboriginal/data/D7L_1_2_1_d2.cleaned.truncated.trim', '/panvol1/simon/projects/AusAboriginal/data/D7L_2_1_d2.cleaned.truncated.trim', '/panvol1/simon/projects/AusAboriginal/data/D7_1_1.cleaned.truncated.trim', '/panvol1/simon/projects/AusAboriginal/data/D7_1_2.cleaned.truncated.trim', '/panvol1/simon/projects/AusAboriginal/data/D7_2_1_d2.cleaned.truncated.trim', '/panvol1/simon/projects/AusAboriginal/data/D9_1b_d2.cleaned.truncated.trim', '/panvol1/simon/projects/AusAboriginal/data/D9_2b_d2.cleaned.truncated.trim', '/panvol1/simon/projects/AusAboriginal/data/D9_3b_d2.cleaned.truncated.trim']
 

@@ -78,43 +78,25 @@ def rmdup(infiles, tmpdir):
       call = java_call + picard_cmd + picard_arg
       calls.append(call)
    return (calls, outfiles)
-   
 
-#test
-#libfile = 'libs.NA12891.txt'
-#bams = ['alignment/SRR002081se.recal.fastq.bam', 'alignment/SRR002082se.recal.fastq.bam', 'alignment/SRR002137pe_1.recal.fastq.bam', 'alignment/SRR002138pe_1.recal.fastq.bam']
-#mapq = [30]
-#libs = ['lib']
-#final_bam = 'alignment/NA12891.flt.sort.rmdup.bam'
 
 def start_bamprocess(libfile, bams, mapq, libs, tmpdir, queue, final_bam, sample, logger):
    '''Starts bam processing of input files'''
    
-   # Filter for mapping quality
-   # Sort
-   # Merge to libraries
-   # Remove pcr duplicates
-   # Merge to final bam
-   #
-   # Input either:
-   #    input as bam, mapq and libs
-   # OR
-   #    a lib file: bam_file\tqual_threshold\tlib_name\n      
-   
-   
    import subprocess
    import genobox_modules
-   import genobox_modules
+   from genobox_classes import Moab
+   from genobox_classes import Semaphore
    import os
    
    # set queueing
    paths = genobox_modules.setSystem()
    home = os.getcwd()
-   cpuA = 'nodes=1:ppn=1,mem=512mb'
-   cpuC = 'nodes=1:ppn=1,mem=2gb'
-   cpuE = 'nodes=1:ppn=1,mem=5gb'
-   cpuF = 'nodes=1:ppn=2,mem=2gb'
-   cpuB = 'nodes=1:ppn=16,mem=10gb'
+   cpuA = 'nodes=1:ppn=1,mem=512mb,walltime=172800'
+   cpuC = 'nodes=1:ppn=1,mem=2gb,walltime=172800'
+   cpuE = 'nodes=1:ppn=1,mem=5gb,walltime=172800'
+   cpuF = 'nodes=1:ppn=2,mem=2gb,walltime=172800'
+   cpuB = 'nodes=1:ppn=16,mem=10gb,walltime=172800'
    
    # create libfile if not given
    if not libfile:
@@ -139,20 +121,22 @@ def start_bamprocess(libfile, bams, mapq, libs, tmpdir, queue, final_bam, sample
    ## SUBMIT JOBS ##
    
    print "Submitting jobs"
-   filter_sort_ids = genobox_modules.submitjob(filter_sort_calls, home, paths, logger, 'run_genobox_filtersort', queue, cpuC, False)
-   merge_lib_ids = genobox_modules.submitjob(merge_lib_calls, home, paths, logger, 'run_genobox_lib_merge', queue, cpuC, True, 'complex', map(len, lib2bam.values()), True, *filter_sort_ids)
-   rmdup_ids = genobox_modules.submitjob(rmdup_calls, home, paths, logger, 'run_genobox_rmdup', queue, cpuC, True, 'one2one', 1, True, *merge_lib_ids)
-   merge_final_ids = genobox_modules.submitjob(merge_final_call, home, paths, logger, 'run_genobox_final_merge', queue, cpuC, True, 'conc', len(rmdup_ids), True, *rmdup_ids)
-   
+   filtersort_moab = Moab(filter_sort_calls, logfile=logger, runname='run_genobox_filtersort', queue=queue, cpu=cpuC)
+   mergelib_moab = Moab(merge_lib_calls, logfile=logger, runname='run_genobox_lib_merge', queue=queue, cpu=cpuC, depend=True, depend_type='complex', depend_val=map(len, lib2bam.values()), depend_ids=filtersort_moab.ids)
+   rmdup_moab = Moab(rmdup_calls, logfile=logger, runname='run_genobox_rmdup', cpu=cpuC, depend=True, depend_type='one2one', depend_val=[1], depend_ids=mergelib_moab.ids)
+   mergefinal_moab = Moab(merge_final_call, logfile=logger, runname='run_genobox_final_merge', queue=queue, cpu=cpuC, depend=True, depend_type='conc', depend_val=[len(rmdup_moab.ids)], depend_ids=rmdup_moab.ids)
    
    # release jobs #
-   allids = []
-   allids.extend(filter_sort_ids) ; allids.extend(merge_lib_ids) ; allids.extend(rmdup_ids) ; allids.extend(merge_final_ids)
-   releasemsg = genobox_modules.releasejobs(allids)
+   print "Releasing jobs"
+   filtersort_moab.release()
+   mergelib_moab.release()
+   rmdup_moab.release()
+   mergefinal_moab.release()
    
    # semaphore
    print "Waiting for jobs to finish ..." 
-   genobox_modules.wait_semaphore(merge_final_ids, home, 'bam_processing', queue, 20, 2*86400)
+   s = Semaphore(mergefinal_moab.ids, home, 'bam_processing', queue, 20, 2*86400)
+   s.wait()
    print "--------------------------------------"
    
    # return final bamfile

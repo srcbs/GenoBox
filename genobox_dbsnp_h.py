@@ -10,15 +10,23 @@ import logging
 
 def vcf_exchange_ids(vcf, ex, vcf_out):
    '''Exchange ids in vcf'''
+   print 'ex: %s' % ex
+   print 'vcf: %s' % vcf
    
-   if ex:
+   if ex and ex != 'None':
       cmd = 'python2.7 ' + paths['genobox_home'] + 'genobox_exchangeids.py'
-      arg = ' --a %s --x 0 --b %s --o %s' % (vcf, ex, vcf_out)
-      call = cmd+arg
+      if vcf.endswith('.gz'):
+         call = 'gzip -dc %s | %s --x 0 --b %s --o %s' % (vcf, cmd, ex, vcf_out)
+      else:
+         arg = ' --a %s --x 0 --b %s --o %s' % (vcf, ex, vcf_out)
+         call = cmd+arg
       logger.info(call)
       subprocess.check_call(call, shell=True)
    else:
-      call = 'cp %s %s' % (vcf, vcf_out)
+      if vcf.endswith('.gz'):
+         call = 'gzip -dc %s > %s' % (vcf, vcf_out)
+      else:
+         call = 'cp %s %s' % (vcf, vcf_out)
       logger.info(call)
       subprocess.check_call(call, shell=True)
 

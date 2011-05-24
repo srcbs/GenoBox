@@ -21,6 +21,8 @@ def start_bcf2ref(bcf, genome_file, Q, ex, dbsnp, rmsk, indels, o, queue, dir, l
    '''
    
    import genobox_modules
+   from genobox_classes import Moab
+   from genobox_classes import Semaphore   
    import subprocess
    import os
    
@@ -30,11 +32,11 @@ def start_bcf2ref(bcf, genome_file, Q, ex, dbsnp, rmsk, indels, o, queue, dir, l
    # set queueing
    paths = genobox_modules.setSystem()
    home = os.getcwd()
-   cpuA = 'nodes=1:ppn=1,mem=512mb'
-   cpuC = 'nodes=1:ppn=1,mem=2gb'
-   cpuE = 'nodes=1:ppn=1,mem=5gb'
-   cpuF = 'nodes=1:ppn=2,mem=2gb'
-   cpuB = 'nodes=1:ppn=16,mem=10gb'
+   cpuA = 'nodes=1:ppn=1,mem=512mb,walltime=172800'
+   cpuC = 'nodes=1:ppn=1,mem=2gb,walltime=172800'
+   cpuE = 'nodes=1:ppn=1,mem=5gb,walltime=172800'
+   cpuF = 'nodes=1:ppn=2,mem=2gb,walltime=172800'
+   cpuB = 'nodes=1:ppn=16,mem=10gb,walltime=172800'
    
    # read genome file
    genome = get_genome(genome_file)
@@ -60,14 +62,14 @@ def start_bcf2ref(bcf, genome_file, Q, ex, dbsnp, rmsk, indels, o, queue, dir, l
    
    # submit jobs
    print "Submitting jobs"
-   bcf2ref_ids = genobox_modules.submitjob(bcf2ref_calls, home, paths, logger, 'run_genobox_bcf2ref', queue, cpuE, False)
+   bcf2ref_moab = Moab(bcf2ref_calls, logfile=logger, runname='run_genobox_bcf2ref', queue=queue, cpu=cpuE)
    
-   # release jobs #
-   allids = []
-   allids.extend(bcf2ref_ids)
-   releasemsg = genobox_modules.releasejobs(allids)
+   # release jobs
+   print "Releasing jobs"
+   bcf2ref_moab.release()
    
    # semaphore
    print "Waiting for jobs to finish ..."
-   genobox_modules.wait_semaphore(bcf2ref_ids, home, 'bcf2ref', queue, 20, 2*86400)
+   s = Semaphore(bcf2ref_moab.ids, home, 'bcf2ref', queue, 20, 2*86400)
+   s.wait()
    print "--------------------------------------"
