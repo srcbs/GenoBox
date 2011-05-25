@@ -616,3 +616,17 @@ def unique(seq):
          checked.append(e) 
    return checked
 
+
+def rm_files(patterns):
+   '''Remove files using glob given as list of patterns'''
+   
+   import glob
+   import os
+   
+   for p in patterns:
+      files = glob.glob(p)
+      if len(files) == 0:
+         pass
+      else:
+         map(os.remove, files)
+

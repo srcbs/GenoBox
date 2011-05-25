@@ -248,7 +248,6 @@ class Moab:
             cmd = 'mjobctl -u user \"%s\"' % (' ').join(self.ids)
             out = subprocess.check_output(cmd, shell=True)
             break
-   
 
 
 class Semaphore:
