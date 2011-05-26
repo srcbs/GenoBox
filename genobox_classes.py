@@ -297,169 +297,159 @@ class Semaphore:
       if cnt <= 0:
          raise SystemExit('%s did not finish in %is' % ())
 
-class Lib:
-   '''class for use, construct and read from library file'''
+class Library:
+   '''Class for use, construct and read from library file'''
    
-   def __init__(self, f, mapq, libs, pl, sample):
+   def __init__(self, f):
       '''Constructor for lib class'''
       self.f = f
-      self.mapq = mapq
-      self.libs = libs
-      self.pl = pl
-      self.sample = sample
+      self.data = {}
+      self.allowedRGs = ['ID', 'CN', 'DS', 'DT', 'FO', 'KS', 'LB', 'PG', 'PI', 'PL', 'PU', 'SM']
    
    def __repr__(self):
       '''Return string of attributes'''
-      msg = 'Lib(%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)' % (f, "["+", ".join(self.mapq)+"]", "["+", ".join(self.libs)+"]", "["+", ".join(self.pl)+"]", self.sample)
+      msg = 'Lib(%s)' % (self.f)
       return msg
    
    def read(self):
-      '''Reads in library file and returns dict with ID as keys'''
+      '''Reads in library file and returns dict with tags as keys and data as values'''
       
       fh = open(self.f, 'r')
       header = fh.readline().rstrip().split('\t')
+      
+      # create dict with tags as key
+      data = {}
+      for key in header:
+         data[key] = []
       
       # fill dict with data
-      id_dict = dict()
       for line in fh:
          fields = line.rstrip().split('\t')
-         if len(header) == len(fields):
-            id_dict[fields[0]] = fields[0:]
-         else:
-            raise ValueError('Line \"%s\" do not have same number of fields as header')
+         for i in range(len(fields)):
+            data[header[i]] = data[header[i]]+[fields[i]]
       
-      id_dict['header'] = header
-      return id_dict
+      self.data = data
    
-   def create(self):
-      '''Create library dict from inputs'''
+   def create(self, **kwargs):
+      '''Create library dict from inputs and write to file (self.f)
+         input: list of tagA=[value1, value2], tagB=[value1, value2] ..., tag names will become the header
+      '''
       
-      import sys
-      
-      # check lengths of mapq and libs
-      if len(self.mapq) < len(self.input):
-         sys.stderr.write("warning: length of mapq is shorter than length of inputfiles, reusing %i\n" % self.mapq[0])   
-         while len(self.mapq) < len(self.input):
-            self.mapq.append(self.mapq[0])
-      if len(self.libs) < len(self.input):
-         sys.stderr.write("warning: length of libs is shorter than length of inputfiles, reusing %s\n" % self.libs[0])   
-         while len(self.libs) < len(self.input):
-            self.libs.append(self.libs[0])
-      
-      # create dict
-      id_dict = dict()
-      c = 0
-      for i,input in enumerate(input):
-         id = '%s_%i' % (self.sample, c + 1)
-         id_dict[id] = [id, input, str(self.mapq[c]), self.libs[c], self.pl, self.sample]
-         c = c + 1
-      
-      id_dict['header'] = ['ID', 'Data', 'MAPQ', 'LB', 'PL', 'SM']
-      
-      # write to disk
-      fh = open('libs.%s.txt' % self.sample, 'w')
-      fh.write('%s\n' % '\t'.join(id_dict['header']))
-      for key in sorted(id_dict.keys()):
-         if key == 'header':
-            continue
-         fh.write('%s\n' % '\t'.join(id_dict[key]))
-      return (id_dict, 'libs.%s.txt' % self.sample)
-   
-   
-   def update(self, key_col, new_col, val_dict, force=False):
-      '''Update libfile with a new column of data'''
-      
-      import sys
-      
-      # read in current file
-      fh = open(self.f, 'r')
-      header = fh.readline().rstrip().split('\t')
-      data = fh.read().split('\n')
-      if data[-1] == '':
-         data = data[:-1]
-      fh.close()
-      
-      # check length of data and new val_dict
-      if len(data) == len(val_dict):
-         pass
-      else:
-         raise ValueError('Rows of libfile (%i) does not match length of new val_dict (%i)' % (len(data), len(val_dict)))
-      
-      # check if column already exist, if forced then remove old column
-      if new_col in header:
-         if force == False:
-            sys.stderr.write('column %s already exists, %s not updated\n' % (new_col, self.f))
-            return 
-         else:
-            n = header.index(new_col)
-            header.remove(new_col)
-            new_data = []
-            for line in data:
-               fields = line.split('\t')
-               new_fields = fields[:n] + fields[(n+1):]
-               new_data.append('\t'.join(new_fields))
-            data = new_data
-      
-      # append data
+      # open handle
       fh = open(self.f, 'w')
-      header.append(new_col)
-      fh.write('%s\n' % '\t'.join(header))
-      for line in data:
-         fields = line.split('\t')
-         for key in val_dict.keys():
-            if fields[header.index(key_col)] == key:
-               new_line = '%s\t%s\n' % (line, val_dict[key])
-               fh.write(new_line)
-               break
       
+      header = kwargs.keys()
+      header.sort()
+      fh.write('\t'.join(header)+'\n')
+      for i in range(len(kwargs[kwargs.keys()[0]])):
+         for key in header:
+            fh.write(kwargs[key][i])
+            if key == header[-1]:
+               fh.write('\n')
+            else:
+               fh.write('\t')
       fh.close()
-      return
+      
+      # when created read into self
+      self.read()
    
-   def getRG(self, index):
-      '''Return read group from lib_dict with index as key'''
+   def write(self, data):
+      '''Writes library dictionary to file'''
       
-      allowedRGs = ['ID', 'CN', 'DS', 'DT', 'FO', 'KS', 'LB', 'PG', 'PI', 'PL', 'PU', 'SM']
+      # open handle
+      fh = open(self.f, 'w')
       
-      id_dict = self.read(self.f)
+      header = data.keys()
+      header.sort()
+      fh.write('\t'.join(header)+'\n')
+      for i in range(len(data[data.keys()[0]])):
+         for key in header:
+            fh.write(data[key][i])
+            if key == header[-1]:
+               fh.write('\n')
+            else:
+               fh.write('\t')
+      fh.close()
+   
+   def update(self, **kwargs):
+      '''Add column(s) to library file'''
       
-      RG = dict()
-      #RG = '\@RG\tID:foo\tSM:bar'
-      header = self.f['header']
-      for key,value in id_dict.items():
-         if key == 'header':
-            continue
+      # check if new column is same length
+      for key in kwargs.keys():
+         if len(kwargs[key]) != len(self.data[self.data.keys()[0]]):
+            raise ValueError('New column is not of same length as existing')
          
+      # read in dict, update with new column and write to file
+      current = self.data
+      current.update(kwargs)
+      self.write(current)
+      self.data = current
+   
+   def keep(self, tag, values):
+      '''Remove rows that does not contain any of the tag=values'''
+      
+      rowsToRemove = []
+      if self.data.has_key(tag):
+         for i in range(len(self.data[self.data.keys()[0]])):
+            if self.data[tag][i] in values:
+               pass
+            else:
+               rowsToRemove.append(i)
+         # remove rows
+         for key in self.data.keys():
+            for element in rowsToRemove[::-1]:
+               del self.data[key][element]
+      
+      self.write(self.data)
+      
+   def getRG(self, tag):
+      '''Return read group from data with tag as key'''
+      
+      RG = {}
+      header = self.data.keys()      
+      for i in range(len(self.data[self.data.keys()[0]])):
          currRG = ['@RG']
-         for h in header:
-            if h in allowedRGs:
-               currRG.append('%s:%s' % (h, value[header.index(h)]))
-         RG[value[header.index(index)]] = currRG
+         for key in self.data.keys():
+            if key in self.allowedRGs:
+               currRG.append('%s:%s' % (key, self.data[key][i]))              
+         RG[self.data[tag][i]] = currRG
       return RG
    
-   def get_bamlibs(self):
-      '''Read library file and return dict'''
+   def getBamLibs(self):
+      '''Return two dictionaries:
+         key=BAM, value=(MAPQ, LB)
+         key=LB, value=[BAM1, BAM2,...]
+      '''
       
       from collections import defaultdict
       
-      fh = open(self.f, 'r')
-      header = fh.readline().rstrip().split('\t')
+      def unique(seq):
+         '''Return unique and ordered list'''
+         
+         # order preserving 
+         checked = [] 
+         for e in seq: 
+            if e not in checked: 
+               checked.append(e) 
+         return checked
       
-      # check if bamfiles are written in libfile
-      if 'BAM' in header:
+      # check if BAM-files are written
+      if 'BAM' in self.data.keys():
          pass
       else:
-         raise IndexError('There is no column \"BAM\" in the libfile (%s)' % libfile)
+         raise IndexError('There is no column \"BAM\" in the libfile (%s)' % self.f)
       
       bam2lib = {}
+      for i in range(len(self.data[self.data.keys()[0]])):
+         bam2lib[self.data['BAM'][i]] = (self.data['MAPQ'][i], self.data['LB'][i])
+      
       lib2bam = defaultdict(list)
-      for line in fh:
-         fields = line.rstrip().split('\t')
-         bam2lib[fields[header.index('BAM')]] = (fields[header.index('MAPQ')], fields[header.index('LB')])
-         
-         lib2bam[fields[header.index('LB')]].append(fields[header.index('BAM')])
+      for i in range(len(self.data[self.data.keys()[0]])):
+         lib2bam[self.data['LB'][i]].append(self.data['BAM'][i])
       
       # unique on lib2bam
       for key,values in lib2bam.items():
          lib2bam[key] = unique(values)
       
       return (bam2lib, lib2bam)
+

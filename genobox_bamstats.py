@@ -85,8 +85,8 @@ def start_bamstats(args, bam, logger, wait=True):
    
    # submit jobs
    print "Submitting jobs"
-   flagstat_moab = Moab(flagstat_calls, logfile=logger, runname='run_genobox_flagstat', queue= args.queue, cpu=cpuC)
-   coverage_moab = Moab(coverage_calls, logfile=logger, runname='run_genobox_coverage', queue= args.queue, cpu=cpuC)
+   flagstat_moab = Moab(flagstat_calls, logfile=logger, runname='run_genobox_flagstat', queue=args.queue, cpu=cpuC)
+   coverage_moab = Moab(coverage_calls, logfile=logger, runname='run_genobox_coverage', queue=args.queue, cpu=cpuC)
    plotcoverage_moab = Moab(plotcoverage_calls, logfile=logger, runname='run_genobox_plotcoverage', queue=args.queue, cpu=cpuA, depend=True, depend_type='one2one', depend_val=[1], depend_ids=coverage_moab.ids)
    avgdepth_moab = Moab(avgdepth_calls, logfile=logger, runname='run_genobox_avgdepth', queue=args.queue, cpu=cpuE)
    

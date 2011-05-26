@@ -50,6 +50,22 @@ def all_same(items):
    return all(x == items[0] for x in items)
 
 
+def check_trim(args):
+   '''Check if args.no_trim attribute is present and return files to use'''
+   
+   # check if args has no_trim attribute (will not if the module is alignment)
+   present = False
+   try:
+      args.no_trim
+   except: return ([args.se, args.pe1, args.pe2])
+   
+   # return if it was set
+   if args.no_trim == True:
+      return ([args.se, args.pe1, args.pe2])
+   else:
+      return args.trimmed_files     
+      
+
 def bwa_se_align(fastqs, fa, fqtypes, qtrim, alignpath, libdict, threads, queue, logger):
    '''Start alignment using bwa of fastq reads on index'''
    
@@ -205,7 +221,7 @@ def start_alignment(args, logger):
    '''Start alignment of fastq files using BWA'''
    
    import genobox_modules
-   from genobox_classes import Semaphore
+   from genobox_classes import Semaphore, Library
    import subprocess
    import os
    
@@ -217,11 +233,25 @@ def start_alignment(args, logger):
    if not os.path.exists('alignment'):
       os.makedirs('alignment')
    
-   # check and load/create library file
-   if args.libfile and args.libfile != 'None':
-      libdict = genobox_modules.read_library(args.libfile)
-      libfile = args.libfile
+   ## Create library file instance ##
+   
+   
+   # if library file is given:
+      # copy library file so that it can be edited
+      # create instance and read in library file (Library(args.libfile) ; .read())
+      # remove all non-input lines from library file (using .keep('Data', [args.se+args.pe1+args.pe2]))
+   # else create new from input
+      # create instance (Library('libs.%s.txt' % sample)
+      # .create(ID=[], Data=[], SM=[], MAPQ=[], LB=[], PL=[]) (create function that wraps this from inputs?)
+   
+   
+   
+   # if given by args.libfile load it, else create it from input
+   if args.libfile:
+      library = Library(args.libfile)
+      library.read()
    else:
+      library = Library()
       try:
          (libdict, libfile) = genobox_modules.library_from_input(args.se + args.pe1 + args.pe2, args.sample, args.mapq, args.libs)
       except:
@@ -229,6 +259,9 @@ def start_alignment(args, logger):
    
    # check for fa
    check_fa(args.fa)
+   
+   # check for if trimming was performed (abgv only) and set correct files
+   (se_files, pe1_files, pe2_files) = check_trim(args)
    
    # start single end alignments
    if args.se:

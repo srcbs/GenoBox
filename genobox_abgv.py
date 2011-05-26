@@ -1,5 +1,6 @@
 #!/usr/bin/python
 
+from genobox_trim import *
 from genobox_alignment import *
 from genobox_bamprocess import *
 from genobox_bamstats import *
@@ -7,7 +8,6 @@ from genobox_genotyping import *
 from genobox_vcffilter import *
 from genobox_dbsnp import *
 from genobox_bcf2ref import *
-import genobox_modules
 import genobox_modules
 
 # test
@@ -34,7 +34,16 @@ def start_abgv(args, logger):
    if args.sample:
       print "--------------------------------------"
       print "Processing sample: %s" % args.sample
-   print "--------------------------------------"   
+   print "--------------------------------------"
+   
+   if not args.no_trim:
+      print "Starting trimming"
+      (se_files, pe1_files, pe2_files) = start_trim(args, logger)
+      args.trimmed_files = [se_files, pe1_files, pe2_files]
+   
+   # need to create library class so that I can update with trimmed files
+   # then use that column for alignment
+   
    print "Starting alignment"
    (bamfiles, libfile) = start_alignment(args, logger)
    print "Starting bam processing"
