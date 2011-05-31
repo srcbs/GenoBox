@@ -66,7 +66,7 @@ def check_trim(args):
       return args.trimmed_files     
       
 
-def bwa_se_align(fastqs, fa, fqtypes, qtrim, alignpath, libdict, threads, queue, logger):
+def bwa_se_align(fastqs, fa, fqtypes, qtrim, alignpath, library, threads, queue, logger):
    '''Start alignment using bwa of fastq reads on index'''
    
    import subprocess
@@ -85,7 +85,8 @@ def bwa_se_align(fastqs, fa, fqtypes, qtrim, alignpath, libdict, threads, queue,
       cpuB = cpuA
    
    # get readgroups
-   RG = genobox_modules.read_groups_from_libfile('Data', libdict)
+   RG=library.getRG('Data')
+   #RG = genobox_modules.read_groups_from_libfile('Data', library)
    
    # align
    cmd = paths['bwa_home'] + 'bwa'
@@ -127,7 +128,7 @@ def bwa_se_align(fastqs, fa, fqtypes, qtrim, alignpath, libdict, threads, queue,
    return (bwa_samse_moab.ids, bamfiles_dict)
 
 
-def bwa_pe_align(pe1, pe2, fa, fqtypes_pe1, fqtypes_pe2, qtrim, alignpath, a, libdict, threads, queue, logger):
+def bwa_pe_align(pe1, pe2, fa, fqtypes_pe1, fqtypes_pe2, qtrim, alignpath, a, library, threads, queue, logger):
    '''Start alignment using bwa of paired end fastq reads on index'''
    
    import subprocess
@@ -146,7 +147,8 @@ def bwa_pe_align(pe1, pe2, fa, fqtypes_pe1, fqtypes_pe2, qtrim, alignpath, a, li
       cpuB = cpuA
    
    # get readgroups
-   RG = genobox_modules.read_groups_from_libfile('Data', libdict)
+   RG=library.getRG('Data')
+   #RG = genobox_modules.read_groups_from_libfile('Data', library)
    
    # align and sampe
    cmd = paths['bwa_home'] + 'bwa'
@@ -191,23 +193,21 @@ def bwa_pe_align(pe1, pe2, fa, fqtypes_pe1, fqtypes_pe2, qtrim, alignpath, a, li
       bwa_align1_calls.append(bwa_align1)
       bwa_align2_calls.append(bwa_align2)
       bwa_sampe_calls.append(sampecall)
-      
    
-
    # submit jobs
    # create moab instance for the align_calls and dispatch to queue
    bwa_align1_moab = Moab(bwa_align1_calls, logfile=logger, runname='run_genobox_bwaalign1', queue=queue, cpu=cpuB)
    bwa_align2_moab = Moab(bwa_align2_calls, logfile=logger, runname='run_genobox_bwaalign2', queue=queue, cpu=cpuB)
-
+   
    # set jobids in the correct way
    bwa_alignids = []
    for i in range(len(bwa_align1_moab.ids)):
       bwa_alignids.append(bwa_align1_moab.ids[i])
       bwa_alignids.append(bwa_align2_moab.ids[i])
-
+   
    # submit sampe
    bwa_sampe_moab = Moab(bwa_sampe_calls, logfile=logger, runname='run_genobox_bwasampe', queue=queue, cpu=cpuA, depend=True, depend_type='conc', depend_val=[2], depend_ids=bwa_alignids)
-      
+   
    # release jobs
    print "Releasing jobs"
    bwa_align1_moab.release()
@@ -224,6 +224,8 @@ def start_alignment(args, logger):
    from genobox_classes import Semaphore, Library
    import subprocess
    import os
+   import random
+   import string
    
    paths = genobox_modules.setSystem()
    home = os.getcwd()
@@ -233,30 +235,12 @@ def start_alignment(args, logger):
    if not os.path.exists('alignment'):
       os.makedirs('alignment')
    
-   ## Create library file instance ##
-   
-   
-   # if library file is given:
-      # copy library file so that it can be edited
-      # create instance and read in library file (Library(args.libfile) ; .read())
-      # remove all non-input lines from library file (using .keep('Data', [args.se+args.pe1+args.pe2]))
-   # else create new from input
-      # create instance (Library('libs.%s.txt' % sample)
-      # .create(ID=[], Data=[], SM=[], MAPQ=[], LB=[], PL=[]) (create function that wraps this from inputs?)
-   
-   
-   
-   # if given by args.libfile load it, else create it from input
-   if args.libfile:
-      library = Library(args.libfile)
-      library.read()
-   else:
-      library = Library()
-      try:
-         (libdict, libfile) = genobox_modules.library_from_input(args.se + args.pe1 + args.pe2, args.sample, args.mapq, args.libs)
-      except:
-         (libdict, libfile) = genobox_modules.library_from_input(args.se + args.pe1 + args.pe2, args.sample, [30], args.libs)
-   
+   # create library file
+   try:
+      library = genobox_modules.initialize_library(args.libfile, args.se, args.pe1, args.pe2, args.sample, args.mapq, args.libs, args.pl)
+   except:
+      library = genobox_modules.initialize_library(args.libfile, args.se, args.pe1, args.pe2, args.sample, [30], args.libs, args.pl)
+      
    # check for fa
    check_fa(args.fa)
    
@@ -269,7 +253,7 @@ def start_alignment(args, logger):
       # set fqtypes
       fqtypes_se = map(check_formats_fq, args.se)
       print "Submitting single end alignments"
-      (se_align_ids, bamfiles_se) = bwa_se_align(args.se, args.fa, fqtypes_se, args.qtrim, 'alignment/', libdict, args.n, args.queue, logger)
+      (se_align_ids, bamfiles_se) = bwa_se_align(args.se, args.fa, fqtypes_se, args.qtrim, 'alignment/', library, args.n, args.queue, logger)
       semaphore_ids.extend(se_align_ids)
       bamfiles.update(bamfiles_se)
       
@@ -286,12 +270,12 @@ def start_alignment(args, logger):
       fqtypes_pe.extend(fqtypes_pe2)
       
       print "Submitting paired end alignments"
-      (pe_align_ids, bamfiles_pe) = bwa_pe_align(args.pe1, args.pe2, args.fa, fqtypes_pe1, fqtypes_pe2, args.qtrim, 'alignment/', args.a, libdict, args.n, args.queue, logger)            
+      (pe_align_ids, bamfiles_pe) = bwa_pe_align(args.pe1, args.pe2, args.fa, fqtypes_pe1, fqtypes_pe2, args.qtrim, 'alignment/', args.a, library, args.n, args.queue, logger)            
       semaphore_ids.extend(pe_align_ids)
       bamfiles.update(bamfiles_pe)
    
-   # update libfile
-   genobox_modules.update_libfile(libfile, 'Data', 'BAM', bamfiles, force=True)
+   # update library
+   library.update_with_tag('Data', 'BAM', bamfiles, True)
    
    # wait for jobs to finish
    print "Waiting for jobs to finish ..." 

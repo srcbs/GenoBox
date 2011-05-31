@@ -8,7 +8,9 @@ from genobox_genotyping import *
 from genobox_vcffilter import *
 from genobox_dbsnp import *
 from genobox_bcf2ref import *
-import genobox_modules
+from genobox_classes import Library
+
+import genobox_modules         
 
 # test
 #import pickle
@@ -24,30 +26,25 @@ def start_abgv(args, logger):
    final_bam = 'alignment/%s.flt.sort.rmdup.bam' % args.sample
    final_bcf = 'genotyping/%s.all.bcf' % args.sample
    
-   # copy library file to new dir and update
-   if args.libfile:
-      home = os.getcwd()
-      newlibfile = home + '/' + os.path.split(args.libfile)[1]
-      exitcode = subprocess.check_call('cp %s %s' % (args.libfile, newlibfile), shell=True)
-      args.libfile = newlibfile
+   # initialize library file from given arguments
+   library = genobox_modules.initialize_library(args.libfile, args.se, args.pe1, args.pe2, args.sample, args.mapq, args.libs, args.pl)
    
+   # start run
    if args.sample:
       print "--------------------------------------"
       print "Processing sample: %s" % args.sample
    print "--------------------------------------"
    
-   if not args.no_trim:
-      print "Starting trimming"
-      (se_files, pe1_files, pe2_files) = start_trim(args, logger)
-      args.trimmed_files = [se_files, pe1_files, pe2_files]
-   
-   # need to create library class so that I can update with trimmed files
-   # then use that column for alignment
+   # toggle start trimming
+   #if args.no_trim == False:
+   #   print "Starting trimming"
+   #   (se_files, pe1_files, pe2_files) = start_trim(args, logger)
+   #   library.update(Trim=se_files+pe1_files+pe2_files)
    
    print "Starting alignment"
    (bamfiles, libfile) = start_alignment(args, logger)
    print "Starting bam processing"
-   final_bam = start_bamprocess(libfile, genobox_modules.unique(bamfiles.values()), args.mapq, args.libs, args.tmpdir, args.queue, final_bam, args.sample, logger)
+   final_bam = start_bamprocess(library, genobox_modules.unique(bamfiles.values()), args.mapq, args.libs, args.tmpdir, args.queue, final_bam, args.sample, logger)
    print "Starting bam stats"
    start_bamstats(args, final_bam, logger, wait=False)
    print "Starting genotyping"

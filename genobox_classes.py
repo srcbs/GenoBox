@@ -376,14 +376,69 @@ class Library:
       
       # check if new column is same length
       for key in kwargs.keys():
-         if len(kwargs[key]) != len(self.data[self.data.keys()[0]]):
-            raise ValueError('New column is not of same length as existing')
-         
+         try:
+            if len(kwargs[key]) != len(self.data[self.data.keys()[0]]):
+               raise ValueError('New column is not of same length as existing')
+         except:
+            pass
+      
       # read in dict, update with new column and write to file
+      print self.data
+      print "-------------"
       current = self.data
       current.update(kwargs)
+      print current
       self.write(current)
       self.data = current
+   
+   def update_with_tag(self, key_col, new_col, val_dict, force=True):
+      '''Add column to library file using keys in dictionary as tag in key_col'''
+      
+      import sys
+            
+      # read in current file
+      fh = open(self.f, 'r')
+      header = fh.readline().rstrip().split('\t')
+      data = fh.read().split('\n')
+      if data[-1] == '':
+         data = data[:-1]
+      fh.close()
+      
+      # check length of data and new val_dict
+      if len(data) == len(val_dict):
+         pass
+      else:
+         raise ValueError('Rows of libfile (%i) does not match length of new val_dict (%i)' % (len(data), len(val_dict)))
+      
+      # check if column already exist, if forced then remove old column
+      if new_col in header:
+         if force == False:
+            sys.stderr.write('column %s already exists, %s not updated\n' % (new_col, self.f))
+            return 
+         else:
+            n = header.index(new_col)
+            header.remove(new_col)
+            new_data = []
+            for line in data:
+               fields = line.split('\t')
+               new_fields = fields[:n] + fields[(n+1):]
+               new_data.append('\t'.join(new_fields))
+            data = new_data
+      
+      # append data
+      fh = open(self.f, 'w')
+      header.append(new_col)
+      fh.write('%s\n' % '\t'.join(header))
+      for line in data:
+         fields = line.split('\t')
+         for key in val_dict.keys():
+            if fields[header.index(key_col)] == key:
+               new_line = '%s\t%s\n' % (line, val_dict[key])
+               fh.write(new_line)
+               break
+      
+      fh.close()
+      self.read()
    
    def keep(self, tag, values):
       '''Remove rows that does not contain any of the tag=values'''

@@ -14,8 +14,8 @@ def bam_filter_sort(lib2bam, bam2lib, m=500000000):
    
    calls = []
    outfiles = []
-   for libfiles in infiles:
-      for f in libfiles:
+   for library in infiles:
+      for f in library:
          sort_prefix = f + '.flt.sort'
          out_bam = f + '.flt.sort.bam'
          outfiles.append(out_bam)
@@ -80,13 +80,12 @@ def rmdup(infiles, tmpdir):
    return (calls, outfiles)
 
 
-def start_bamprocess(libfile, bams, mapq, libs, tmpdir, queue, final_bam, sample, logger):
+def start_bamprocess(library_file, bams, mapq, libs, tmpdir, queue, final_bam, sample, logger):
    '''Starts bam processing of input files'''
    
    import subprocess
    import genobox_modules
-   from genobox_classes import Moab
-   from genobox_classes import Semaphore
+   from genobox_classes import Moab, Semaphore, Library
    import os
    
    # set queueing
@@ -98,21 +97,25 @@ def start_bamprocess(libfile, bams, mapq, libs, tmpdir, queue, final_bam, sample
    cpuF = 'nodes=1:ppn=2,mem=2gb,walltime=172800'
    cpuB = 'nodes=1:ppn=16,mem=10gb,walltime=172800'
    
-   # create libfile if not given
-   if not libfile:
-      libfile = genobox_modules.library_from_input(bams, sample, mapq, libs)
-   (bam2lib,lib2bam) = genobox_modules.read_bam_libs(libfile)
+   # create library file
+   if library_file and library_file != 'None':
+      library = Library(library_file)
+      library.read()
+      (bam2lib, lib2bam) = library.getBamLibs()
+   else:
+      library = genobox_modules.initialize_library(library_file, sample=sample, mapq=mapq, libs=libs, bams=bams)
    
+      
    ## CREATE CALLS ##
    
    # filter bam and sort
    (filter_sort_calls, filter_sort_files) = bam_filter_sort(lib2bam, bam2lib, 1500000000)
    
    # merge to libs
-   (merge_lib_calls, libfiles) = merge_bam(lib2bam.keys(), lib2bam.values(), add_suffix=True, final_suffix='.flt.sort.bam')
+   (merge_lib_calls, librarys) = merge_bam(lib2bam.keys(), lib2bam.values(), add_suffix=True, final_suffix='.flt.sort.bam')
    
    # rmdup on libs
-   (rmdup_calls, rmdup_files) = rmdup(libfiles, tmpdir)
+   (rmdup_calls, rmdup_files) = rmdup(librarys, tmpdir)
    
    # merge to final file
    (merge_final_call, final_file) = merge_bam([final_bam], [rmdup_files], add_suffix=False)

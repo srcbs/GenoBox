@@ -391,6 +391,9 @@ def rm_files(patterns):
 #mapq = [30]
 #libs = ['libSe']
 
+
+## DEPRECATED ##
+
 def read_library(library_file):
    '''Reads in library file and returns dict with ID as keys'''
    
@@ -540,9 +543,95 @@ def read_bam_libs(libfile):
    
    return (bam2lib, lib2bam)
 
+## DEPRECATED END ##
 
 
 
+# Library inititation
+def initialize_library(libfile, se, pe1, pe2, sample='sample', mapq=[30], libs=['A'], pl=['ILLUMINA'], bams=None):
+   '''Initiates library file from arguments'''
+   
+   from genobox_classes import Library
+   import random
+   import string
+   
+   def try_append(index, from_list, target_list):
+      '''Try to append value (indexed) from list to another list
+         if the value does not exist reuse first value of list
+         Converts all input values to strings
+      '''
+      try:
+         target_list.append(str(from_list[index]))
+      except:
+         target_list.append(str(from_list[0]))
+   
+   if libfile:
+      # copy library file so that it can be edited
+      rand = ''.join(random.choice(string.ascii_uppercase + string.digits) for x in range(10))
+      newlibfile = os.getcwd() + '/' + os.path.split(libfile)[1] + '.' + rand
+      returnmsg = subprocess.check_call('cp %s %s' % (libfile, newlibfile), shell=True)
+      libfile = newlibfile
+      
+      # create instance and read in library file (Library(libfile) ; .read())
+      library = Library(libfile)
+      library.read()
+      
+      # remove all non-input lines from library file
+      library.keep('Data', se+pe1+pe2)      
+   else:
+      # else create new from input
+      library = Library('libs.%s.txt' % sample)
+      
+      # create the library file
+      f_count = 0
+      (ID, Data, SM, MAPQ, LB, PL, BAM) = ([], [], [], [], [], [], [])
+      if se and se != 'None':
+         for i,f in enumerate(se):
+            ID.append(sample + '_%i' % f_count)
+            Data.append(f)
+            SM.append(sample)
+            try_append(f_count, mapq, MAPQ)
+            try_append(f_count, libs, LB)
+            try_append(f_count, pl, PL)
+            f_count += 1
+      
+      if pe1 and pe1 != 'None':
+         for i,f in enumerate(pe1):
+            ID.append(sample + '_%i' % f_count)
+            Data.append(f)
+            SM.append(sample)
+            try_append(f_count, mapq, MAPQ)
+            try_append(f_count, libs, LB)
+            try_append(f_count, pl, PL)
+            f_count += 1
+      
+      if pe2 and pe2 != 'None':
+         for i,f in enumerate(pe2):
+            ID.append(sample + '_%i' % f_count)
+            Data.append(f)
+            SM.append(sample)
+            try_append(f_count, mapq, MAPQ)
+            try_append(f_count, libs, LB)
+            try_append(f_count, pl, PL)
+            f_count += 1
+      
+      if bams and bams != 'None':
+         for i,f in enumerate(bams):
+            ID.append(sample + '_%i' % f_count)
+            Data.append(f)
+            BAM.append(f)
+            SM.append(sample)
+            try_append(f_count, mapq, MAPQ)
+            try_append(f_count, libs, LB)
+            try_append(f_count, pl, PL)
+            f_count += 1
+      
+      if bams and bams != 'None':
+         library.create(ID=ID, Data=Data, SM=SM, MAPQ=MAPQ, LB=LB, PL=PL, BAM=BAM)
+      else:
+         library.create(ID=ID, Data=Data, SM=SM, MAPQ=MAPQ, LB=LB, PL=PL)
+   
+   return library
 
 
 

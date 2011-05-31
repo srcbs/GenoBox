@@ -49,6 +49,22 @@ def required_interval(nmin,nmax):
    return RequiredInterval
 
 
+def required_choices(choices):
+   '''Enforces input numbers (int/float) to be within min and max'''
+   class RequiredChoices(argparse.Action):
+      def __call__(self, parser, args, input, option_string=None):
+         for _in in input:
+            if _in in choices:
+               pass
+            else:
+               msg='argument "{f}" requires values of following: "{choices}"'.format(
+               f=self.dest, choices=', '.join(choices))
+               raise argparse.ArgumentTypeError(msg)
+         setattr(args, self.dest, input)
+   return RequiredChoices
+
+
+
 parser = argparse.ArgumentParser(prog='genobox.py',
                                  formatter_class=lambda prog: argparse.HelpFormatter(prog,max_help_position=25),
                                  description='''Genobox is a toolbox for mapping and genotyping using Illumina read data''', 
@@ -83,7 +99,8 @@ parser_alignment.add_argument('--pe1', help='input paired end fqfiles PE1', narg
 parser_alignment.add_argument('--pe2', help='input paired end fqfiles PE2', nargs='+', action=set_abspath(), default=[])
 parser_alignment.add_argument('--fa', help='input fasta to map against', action=set_abspath())
 parser_alignment.add_argument('--libfile', help='input parameter file', action=set_abspath())
-parser_alignment.add_argument('--libs', help='if --libfile is not given, library names for each input fq', nargs='+', default=['lib'])
+parser_alignment.add_argument('--libs', help='if --libfile is not given, library names for each input fq (order: se, pe1, pe2)', nargs='+', default=['lib'])
+parser_alignment.add_argument('--pl', help='if --libfile is not given, platform for each input fq (order: se, pe1, pe2)', nargs='+', default=['ILLUMINA'], action=required_choices(['CAPILLARY', 'LS454', 'ILLUMINA', 'SOLID', 'HELICOS', 'IONTORRENT', 'PACBIO']))
 parser_alignment.add_argument('--a', help='maximum insert size for bwa sampe (-a) [500]', default=500, type=int)
 parser_alignment.add_argument('--qtrim', help='quality threshold to trim 3\'', default=0, type=int, action=required_interval(0,1000))
 
@@ -151,6 +168,7 @@ parser_abgv.add_argument('--fa', help='bwa index to map against', action=set_abs
 parser_abgv.add_argument('--libfile', help='input parameter file', action=set_abspath())
 parser_abgv.add_argument('--libs', help='if --libfile is not given, library names for each input fq', nargs='+', default=['lib'])
 parser_abgv.add_argument('--mapq', help='mapping quality threshold', type=int, nargs='+', default=[30])
+parser_abgv.add_argument('--pl', help='if --libfile is not given, platform for each input fq (order: se, pe1, pe2)', nargs='+', default=['ILLUMINA'], action=required_choices(['CAPILLARY', 'LS454', 'ILLUMINA', 'SOLID', 'HELICOS', 'IONTORRENT', 'PACBIO']))
 parser_abgv.add_argument('--genome', help='file containing genome to analyse, format: chrom\tchrom_len\tchrom_short_name\tploidy\tmin_depth\tmax_depth\n', default=None, action=set_abspath())
 parser_abgv.add_argument('--tmpdir', help='temporary dir for rmdup [/panvol1/simon/tmp/]', default='/panvol1/simon/tmp/', action=set_abspath())
 parser_abgv.add_argument('--min_length', help='minimum length of a read to keep pairs [25]', type=int, default=25)
@@ -187,6 +205,11 @@ args = parser.parse_args()
 #args = parser.parse_args('abgv --pe1 Kleb-10-213361_2_1_sequence.txt --pe2 Kleb-10-213361_2_2_sequence.txt --fa kleb_pneu.fa --genome kleb_pneu.genome --ab 0.2 --prune 5 --sample kleb_10_213361'.split(' '))
 #args = parser.parse_args(' abgv --se data/*.trim --fa /panvol1/simon/databases/hs_ref37_rCRS/hs_ref_GRCh37_all.fa  --libfile libs.AusAboriginal.txt --genome build37_rCRS.genome --prior flat --pp 0.0001 --Q 40 --rmsk rmsk_build37_rCRS.number.sort.genome --ex gi2number.build37_rCRS --ab 0.2 --prune 5 --n 4 --ovar genotyping/AusAboriginal.var.flt.vcf.gz --oref genotyping/AusAboriginal.ref.flt.vcf.gz --sample AusAboriginal'.split())
 #args = parser.parse_args('trim --pe1 Kleb-10-213361_2_1_sequence.txt --pe2 Kleb-10-213361_2_2_sequence.txt --l 15'.split())
+#args = parser.parse_args('alignment --pe1 SRR002137pe_1.recal.fastq SRR002138pe_1.recal.fastq --pe2 SRR002137pe_2.recal.fastq SRR002138pe_2.recal.fastq --se SRR002081se.recal.fastq SRR002082se.recal.fastq --sample NA12891 --fa /panvol1/simon/databases/hs_ref37_rCRS/hs_ref_GRCh37_all.fa --libfile libs.NA12891.txt'.split())
+#args = parser.parse_args('alignment --pe1 SRR002138pe_1.recal.fastq --pe2 SRR002138pe_2.recal.fastq --sample NA12891 --fa /panvol1/simon/databases/hs_ref37_rCRS/hs_ref_GRCh37_all.fa --libfile libs.NA12891.txt'.split())
+#args = parser.parse_args('alignment --pe1 SRR002138pe_1.recal.fastq --pe2 SRR002138pe_2.recal.fastq --sample NA12891 --fa /panvol1/simon/databases/hs_ref37_rCRS/hs_ref_GRCh37_all.fa --libs A A --pl ILLUMINA ILLUMINA'.split())
+#args = parser.parse_args('abgv --pe1 SRR002138pe_1.recal.fastq --pe2 SRR002138pe_2.recal.fastq --sample NA12891 --fa /panvol1/simon/databases/hs_ref37_rCRS/hs_ref_GRCh37_all.fa --mapq 30 30 --libs A A --pl ILLUMINA ILLUMINA'.split())
+
 
 # If working dir is given, create and move to working directory else run where program is invoked
 if args.sample:
