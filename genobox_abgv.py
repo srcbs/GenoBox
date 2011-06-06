@@ -42,7 +42,7 @@ def start_abgv(args, logger):
    #   library.update(Trim=se_files+pe1_files+pe2_files)
    
    print "Starting alignment"
-   (bamfiles, libfile) = start_alignment(args, logger)
+   (bamfiles, library) = start_alignment(args, logger)
    print "Starting bam processing"
    final_bam = start_bamprocess(library, genobox_modules.unique(bamfiles.values()), args.mapq, args.libs, args.tmpdir, args.queue, final_bam, args.sample, logger)
    print "Starting bam stats"

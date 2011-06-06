@@ -548,7 +548,7 @@ def read_bam_libs(libfile):
 
 
 # Library inititation
-def initialize_library(libfile, se, pe1, pe2, sample='sample', mapq=[30], libs=['A'], pl=['ILLUMINA'], bams=None):
+def initialize_library(libfile, se=[], pe1=[], pe2=[], sample='sample', mapq=[30], libs=['A'], pl=['ILLUMINA'], bams=None):
    '''Initiates library file from arguments'''
    
    from genobox_classes import Library
@@ -581,6 +581,10 @@ def initialize_library(libfile, se, pe1, pe2, sample='sample', mapq=[30], libs=[
    else:
       # else create new from input
       library = Library('libs.%s.txt' % sample)
+      
+      # check if sample is None
+      if not sample:
+         sample = 'sample'
       
       # create the library file
       f_count = 0

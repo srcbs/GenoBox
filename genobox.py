@@ -209,7 +209,8 @@ args = parser.parse_args()
 #args = parser.parse_args('alignment --pe1 SRR002138pe_1.recal.fastq --pe2 SRR002138pe_2.recal.fastq --sample NA12891 --fa /panvol1/simon/databases/hs_ref37_rCRS/hs_ref_GRCh37_all.fa --libfile libs.NA12891.txt'.split())
 #args = parser.parse_args('alignment --pe1 SRR002138pe_1.recal.fastq --pe2 SRR002138pe_2.recal.fastq --sample NA12891 --fa /panvol1/simon/databases/hs_ref37_rCRS/hs_ref_GRCh37_all.fa --libs A A --pl ILLUMINA ILLUMINA'.split())
 #args = parser.parse_args('abgv --pe1 SRR002138pe_1.recal.fastq --pe2 SRR002138pe_2.recal.fastq --sample NA12891 --fa /panvol1/simon/databases/hs_ref37_rCRS/hs_ref_GRCh37_all.fa --mapq 30 30 --libs A A --pl ILLUMINA ILLUMINA'.split())
-
+#args = parser.parse_args('alignment --se SRR075153.fastq SRR075154.fastq --sample Vcholerae_C6 --fa /panvol1/simon/databases/bacteria/vibrio_cholerae_O1_N16961.fa --libfile lib.C6.txt.2'.split())
+#args = parser.parse_args('abgv --no_trim --se /panvol1/simon/projects/cge/haiti/data/ebi/SRP004712/SRR075153.fastq.trim.fq /panvol1/simon/projects/cge/haiti/data/ebi/SRP004712/SRR075154.fastq.trim.fq --sample Vcholerae_C6 --fa /panvol1/simon/databases/bacteria/vibrio_cholerae_O1_N16961.fa --genome /panvol1/simon/databases/bacteria/vibrio_cholerae_O1_N16961.genome --libfile libs.C6.txt.3'.split())
 
 # If working dir is given, create and move to working directory else run where program is invoked
 if args.sample:

@@ -97,14 +97,17 @@ def start_bamprocess(library_file, bams, mapq, libs, tmpdir, queue, final_bam, s
    cpuF = 'nodes=1:ppn=2,mem=2gb,walltime=172800'
    cpuB = 'nodes=1:ppn=16,mem=10gb,walltime=172800'
    
-   # create library file
+   # create library instance
    if library_file and library_file != 'None':
-      library = Library(library_file)
-      library.read()
-      (bam2lib, lib2bam) = library.getBamLibs()
+      if isinstance(library_file, Library):
+         library = library_file
+      else:
+         library = Library(library_file)
+         library.read()
    else:
-      library = genobox_modules.initialize_library(library_file, sample=sample, mapq=mapq, libs=libs, bams=bams)
+      library = genobox_modules.initialize_library(libfile=library_file, sample=sample, mapq=mapq, libs=libs, bams=bams)
    
+   (bam2lib, lib2bam) = library.getBamLibs()
       
    ## CREATE CALLS ##
    

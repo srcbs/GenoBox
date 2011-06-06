@@ -470,6 +470,26 @@ class Library:
          RG[self.data[tag][i]] = currRG
       return RG
    
+   def getPL(self, tag):
+      '''Return platform from data with tag as key'''
+      
+      from collections import defaultdict
+      
+      if 'PL' in self.data.keys():
+         pass
+      else:
+         raise IndexError('There is no column \"PL\" in the libfile (%s)' % self.f)
+      
+      PL = {}
+      for i in range(len(self.data[self.data.keys()[0]])):
+         PL[self.data['Data'][i]] = self.data['PL'][i]
+      
+      PL2data = defaultdict(list)
+      for i in range(len(self.data[self.data.keys()[0]])):
+         PL2data[self.data['PL'][i]].append(self.data['Data'][i])
+      
+      return (PL, PL2data)
+   
    def getBamLibs(self):
       '''Return two dictionaries:
          key=BAM, value=(MAPQ, LB)

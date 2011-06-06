@@ -215,7 +215,51 @@ def bwa_pe_align(pe1, pe2, fa, fqtypes_pe1, fqtypes_pe2, qtrim, alignpath, a, li
    bwa_sampe_moab.release()
       
    return (bwa_sampe_moab.ids, bamfiles_dict)
-      
+
+
+def bwasw(fastqs, fa, fqtypes, alignpath, library, threads, queue, logger):
+   '''Start alignment of fastq files using BWA-SW'''
+   
+   import subprocess
+   import genobox_modules
+   from genobox_classes import Moab
+   import os
+   paths = genobox_modules.setSystem()
+   home = os.getcwd()
+   
+   # setting cpus
+   cpuA = 'nodes=1:ppn=1,mem=5gb,walltime=172800'
+   cpuC = 'nodes=1:ppn=1,mem=2gb,walltime=172800'
+   if threads != 1:
+      cpuB = 'nodes=1:ppn=%s,mem=5gb,walltime=172800' % threads
+   else:
+      cpuB = cpuA
+   
+   # align
+   cmd = paths['bwa_home'] + 'bwa'
+   bwa_align = []
+   bamfiles = []
+   bamfiles_dict = dict()
+   for i,fq in enumerate(fastqs):
+      f = os.path.split(fq)[1]
+      bamfile = alignpath + f + '.bam'
+      bamfiles.append(bamfile)
+      bamfiles_dict[fq] = bamfile      
+      if fqtypes[i] == 'Illumina':
+         raise ValueError('BWA-SW should not align reads with Illumina Qualities')
+      elif fqtypes[i] == 'Sanger':
+         arg = ' bwasw -t %i -b5 -q2 -r1 -z10 %s %s |  %ssamtools view -Sb - > %s' % (threads, fa, fq, paths['samtools_home'], bamfile)
+      bwa_align.append(cmd+arg)
+   
+   # submit jobs
+   # create moab instance for the align_calls and dispatch to queue
+   bwa_align_moab = Moab(bwa_align, logfile=logger, runname='run_genobox_bwaalign', queue=queue, cpu=cpuB)
+   
+   # release jobs
+   print "Releasing jobs"
+   bwa_align_moab.release()
+   
+   return (bwa_align_moab.ids, bamfiles_dict)
 
 def start_alignment(args, logger):
    '''Start alignment of fastq files using BWA'''
@@ -249,14 +293,23 @@ def start_alignment(args, logger):
    
    # start single end alignments
    if args.se:
+            
+      # get platform info
+      (PL, PL2data) = library.getPL('Data')      
       
-      # set fqtypes
-      fqtypes_se = map(check_formats_fq, args.se)
       print "Submitting single end alignments"
-      (se_align_ids, bamfiles_se) = bwa_se_align(args.se, args.fa, fqtypes_se, args.qtrim, 'alignment/', library, args.n, args.queue, logger)
-      semaphore_ids.extend(se_align_ids)
-      bamfiles.update(bamfiles_se)
-      
+      for key,value in PL2data.items():
+         if key == 'ILLUMINA':
+            fqtypes_se = map(check_formats_fq, value)
+            (se_align_ids, bamfiles_se) = bwa_se_align(value, args.fa, fqtypes_se, args.qtrim, 'alignment/', library, args.n, args.queue, logger)
+            semaphore_ids.extend(se_align_ids)
+            bamfiles.update(bamfiles_se)
+         elif key == 'PACBIO':
+            fqtypes_se = map(check_formats_fq, value)
+            (se_align_ids, bamfiles_se) = bwasw(value, args.fa, fqtypes_se, 'alignment/', library, args.n, args.queue, logger)
+            semaphore_ids.extend(se_align_ids)
+            bamfiles.update(bamfiles_se)
+   
    # start paired end alignments
    if args.pe1:
       if len(args.pe1) != len(args.pe2):
@@ -286,4 +339,4 @@ def start_alignment(args, logger):
    print "--------------------------------------"
    
    # return bamfiles   
-   return (bamfiles, libfile)
+   return (bamfiles, library)
