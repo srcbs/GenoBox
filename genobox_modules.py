@@ -89,7 +89,8 @@ def setSystem():
       sys['rnammer_home'] = '/panvol1/simon/bin/rnammer-1.2/'
       sys['cge_genomes'] = '/panvol1/simon/databases/cge_genomes/'
       sys['velvet_home'] = '/panvol1/simon/bin/velvet_1.1.02/'
-      sys['newbler'] = '/panfs/saqqaq/bin/newbler/bin/'
+      #sys['newbler'] = '/panfs/saqqaq/bin/newbler/bin/'
+      sys['newbler'] = '/panvol1/simon/bin/454/bin/'
       sys['stampy'] = '/panvol1/simon/bin/stampy-1.0.6/'
       sys['chain_index'] = '/panvol1/simon/databases/chainmap/'
       sys['taxonomy_ncbi'] = '/panvol1/simon/databases/taxonomy/'
@@ -162,7 +163,6 @@ def submit_xmsub(calls, home, paths, logger, runname, queue, cpu, depend, hold, 
    import subprocess
    import time
    
-   group = 'cdrom'
    ids = []
    for i in range(len(calls)):
       call = calls[i]
@@ -183,9 +183,9 @@ def submit_xmsub(calls, home, paths, logger, runname, queue, cpu, depend, hold, 
       if hold:
          cmd = '%s -h ' % cmd
       if not depend:
-         xmsub = cmd+' -d %s -l %s,walltime=172800 -O %s -E %s -r y -q %s -N %s -W group_list=%s -t %s' % (home, cpu, stdout, stderr, queue, runname, group, call)
+         xmsub = cmd+' -d %s -l %s,walltime=172800 -O %s -E %s -r y -q %s -N %s -t %s' % (home, cpu, stdout, stderr, queue, runname, call)
       else:
-         xmsub = cmd+' -d %s -l %s,walltime=172800,depend=%s -O %s -E %s -r y -q %s -N %s -W group_list=%s -t %s' % (home, cpu, depends[i], stdout, stderr, queue, runname, group, call)
+         xmsub = cmd+' -d %s -l %s,walltime=172800,depend=%s -O %s -E %s -r y -q %s -N %s -t %s' % (home, cpu, depends[i], stdout, stderr, queue, runname, call)
       
       time.sleep(0.1)
       logger.info(xmsub)
@@ -209,7 +209,6 @@ def submit_wrapcmd(calls, home, paths, logger, runname, queue, cpu, depend, hold
    import string
    import time
    
-   group = 'cdrom'
    ids = []
    for i in range(len(calls)):
       call = calls[i]
@@ -231,9 +230,9 @@ def submit_wrapcmd(calls, home, paths, logger, runname, queue, cpu, depend, hold
       if hold:
          cmd = '%s -h' % cmd
       if not depend:
-         msub = '%s -d %s -l %s,walltime=172800 -o %s -e %s -q %s -r y -N %s -W group_list=%s %s' % (cmd, home, cpu, stdout, stderr, queue, runname, group, filename)
+         msub = '%s -d %s -l %s,walltime=172800 -o %s -e %s -q %s -r y -N %s %s' % (cmd, home, cpu, stdout, stderr, queue, runname, filename)
       else:
-         msub = '%s -d %s -l %s,walltime=172800,depend=%s -o %s -e %s -q %s -r y -N %s -W group_list=%s %s' % (cmd, home, cpu, depends[i], stdout, stderr, queue, runname, group, filename)
+         msub = '%s -d %s -l %s,walltime=172800,depend=%s -o %s -e %s -q %s -r y -N %s %s' % (cmd, home, cpu, depends[i], stdout, stderr, queue, runname, filename)
       
       time.sleep(0.1)
       logger.info(msub)

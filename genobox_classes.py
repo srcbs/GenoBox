@@ -13,13 +13,12 @@ class Moab:
       Jobs are submitted as hold by default and should be released using Moab.release().
    '''
    
-   def __init__(self, calls, logfile=None, runname='run_test', queue='cbs', group='cdrom', cpu='nodes=1:ppn=1,mem=2gb,walltime=43200', depend=False, depend_type='one2one', depend_val=[], hold=True, depend_ids=[]):
+   def __init__(self, calls, logfile=None, runname='run_test', queue='cbs', cpu='nodes=1:ppn=1,mem=2gb,walltime=43200', depend=False, depend_type='one2one', depend_val=[], hold=True, depend_ids=[]):
       '''Constructor for Moab class'''
       self.calls = calls
       self.runname = runname
       self.logfile = logfile
       self.queue = queue
-      self.group = group
       self.cpu = cpu
       self.depend = depend
       self.depend_type = depend_type
@@ -32,7 +31,7 @@ class Moab:
    
    def __repr__(self):
       '''Return string of attributes'''
-      msg = 'Moab(%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)' % ("["+", ".join(self.calls)+"]", self.logfile, self.runname, self.queue, self.group, self.cpu, str(self.depend), self.depend_type, "["+", ".join(map(str,self.depend_val))+"]", str(self.hold), "["+", ".join(self.depend_ids)+"]")
+      msg = 'Moab(%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)' % ("["+", ".join(self.calls)+"]", self.logfile, self.runname, self.queue,  self.cpu, str(self.depend), self.depend_type, "["+", ".join(map(str,self.depend_val))+"]", str(self.hold), "["+", ".join(self.depend_ids)+"]")
       return msg
    
    def get_logger(self):
@@ -134,9 +133,9 @@ class Moab:
          if self.hold:
             cmd = '%s -h ' % cmd
          if not self.depend:
-            xmsub = cmd+' -d %s -l %s -O %s -E %s -r y -q %s -N %s -W group_list=%s -t %s' % (home, self.cpu, stdout, stderr, self.queue, self.runname, self.group, call)
+            xmsub = cmd+' -d %s -l %s -O %s -E %s -r y -q %s -N %s -t %s' % (home, self.cpu, stdout, stderr, self.queue, self.runname, call)
          else:
-            xmsub = cmd+' -d %s -l %s,depend=%s -O %s -E %s -r y -q %s -N %s -W group_list=%s -t %s' % (home, self.cpu, depends[i], stdout, stderr, self.queue, self.runname, self.group, call)
+            xmsub = cmd+' -d %s -l %s,depend=%s -O %s -E %s -r y -q %s -N %s -t %s' % (home, self.cpu, depends[i], stdout, stderr, self.queue, self.runname, call)
          
          time.sleep(0.1)
          if logger:
@@ -178,7 +177,7 @@ class Moab:
          # write pbsjob file
          fh = open(filename, 'w')
          fh.write('#!/bin/sh\n\n')
-         fh.write('newgrp cge\n')      # temporary fix to group problems on cge-s2 cluster
+         #fh.write('newgrp cge\n')      # temporary fix to group problems on cge-s2 cluster
          fh.write('%s\n' % call)
          fh.close()
          
@@ -187,9 +186,9 @@ class Moab:
          if self.hold:
             cmd = '%s -h' % cmd
          if not self.depend:
-            msub = '%s -d %s -l %s -o %s -e %s -q %s -r y -N %s -W group_list=%s %s' % (cmd, home, self.cpu, stdout, stderr, self.queue, self.runname, self.group, filename)
+            msub = '%s -d %s -l %s -o %s -e %s -q %s -r y -N %s %s' % (cmd, home, self.cpu, stdout, stderr, self.queue, self.runname, filename)
          else:
-            msub = '%s -d %s -l %s,depend=%s -o %s -e %s -q %s -r y -N %s -W group_list=%s %s' % (cmd, home, self.cpu, depends[i], stdout, stderr, self.queue, self.runname, self.group, filename)
+            msub = '%s -d %s -l %s,depend=%s -o %s -e %s -q %s -r y -N %s %s' % (cmd, home, self.cpu, depends[i], stdout, stderr, self.queue, self.runname, filename)
          
          time.sleep(0.1)
          

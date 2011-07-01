@@ -48,7 +48,7 @@ def start_abgv(args, logger):
    print "Starting bam stats"
    start_bamstats(args, final_bam, logger, wait=False)
    print "Starting genotyping"
-   final_bcf = start_genotyping(final_bam, args.genome, args.fa, args.prior, args.pp, args.queue, final_bcf, logger)
+   final_bcf = start_genotyping(final_bam, args.genome, args.fa, args.prior, args.pp, args.queue, final_bcf, args.sample, logger)
    print "Starting vcffiltering"
    final_vcf = start_vcffilter(final_bcf, args.genome, args.caller, args.Q, args.ex, args.rmsk, args.ab, args.prune, args.ovar, args.queue, args.sample, logger)
    print "Start dbsnp"

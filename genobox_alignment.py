@@ -63,7 +63,8 @@ def check_trim(args):
    if args.no_trim == True:
       return ([args.se, args.pe1, args.pe2])
    else:
-      return args.trimmed_files     
+      return ([args.se, args.pe1, args.pe2])
+      #return args.trimmed_files     
       
 
 def bwa_se_align(fastqs, fa, fqtypes, qtrim, alignpath, library, threads, queue, logger):
@@ -217,8 +218,8 @@ def bwa_pe_align(pe1, pe2, fa, fqtypes_pe1, fqtypes_pe2, qtrim, alignpath, a, li
    return (bwa_sampe_moab.ids, bamfiles_dict)
 
 
-def bwasw(fastqs, fa, fqtypes, alignpath, library, threads, queue, logger):
-   '''Start alignment of fastq files using BWA-SW'''
+def bwasw_pacbio(fastqs, fa, fqtypes, alignpath, library, threads, queue, logger):
+   '''Start alignment of fastq files using BWA-SW Pacific Biosciences data'''
    
    import subprocess
    import genobox_modules
@@ -261,6 +262,7 @@ def bwasw(fastqs, fa, fqtypes, alignpath, library, threads, queue, logger):
    
    return (bwa_align_moab.ids, bamfiles_dict)
 
+
 def start_alignment(args, logger):
    '''Start alignment of fastq files using BWA'''
    
@@ -279,12 +281,9 @@ def start_alignment(args, logger):
    if not os.path.exists('alignment'):
       os.makedirs('alignment')
    
-   # create library file
-   try:
-      library = genobox_modules.initialize_library(args.libfile, args.se, args.pe1, args.pe2, args.sample, args.mapq, args.libs, args.pl)
-   except:
-      library = genobox_modules.initialize_library(args.libfile, args.se, args.pe1, args.pe2, args.sample, [30], args.libs, args.pl)
-      
+   # initialize library file from given arguments
+   library = genobox_modules.initialize_library(args.libfile, args.se, args.pe1, args.pe2, args.sample, args.mapq, args.libs, args.pl)
+         
    # check for fa
    check_fa(args.fa)
    
@@ -299,14 +298,14 @@ def start_alignment(args, logger):
       
       print "Submitting single end alignments"
       for key,value in PL2data.items():
-         if key == 'ILLUMINA':
+         if key == 'ILLUMINA' or key == 'IONTORRENT':
             fqtypes_se = map(check_formats_fq, value)
             (se_align_ids, bamfiles_se) = bwa_se_align(value, args.fa, fqtypes_se, args.qtrim, 'alignment/', library, args.n, args.queue, logger)
             semaphore_ids.extend(se_align_ids)
             bamfiles.update(bamfiles_se)
          elif key == 'PACBIO':
             fqtypes_se = map(check_formats_fq, value)
-            (se_align_ids, bamfiles_se) = bwasw(value, args.fa, fqtypes_se, 'alignment/', library, args.n, args.queue, logger)
+            (se_align_ids, bamfiles_se) = bwasw_pacbio(value, args.fa, fqtypes_se, 'alignment/', library, args.n, args.queue, logger)
             semaphore_ids.extend(se_align_ids)
             bamfiles.update(bamfiles_se)
    

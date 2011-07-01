@@ -19,6 +19,8 @@ import subprocess
 import logging
 import os
 
+os.environ['PYTHONPATH'] = '/lib/python:/home/people/simon/lib/misc:/panvol1/simon/lib/python:/panvol1/simon/bin/genobox'
+os.environ['LD_LIBRARY_PATH'] = '/panvol1/simon/lib'
 
 def set_abspath():
    '''Returns absolute path of file to argparse'''
@@ -253,7 +255,7 @@ elif args.module == 'bamstats':
 
 elif args.module == 'genotyping':
    from genobox_genotyping import *
-   final_bcf = start_genotyping(args.bam, args.genome, args.fa, args.prior, args.pp, args.queue, args.o, logger)
+   final_bcf = start_genotyping(args.bam, args.genome, args.fa, args.prior, args.pp, args.queue, args.o, args.sample, logger)
 
 elif args.module == 'vcffilter':
    from genobox_vcffilter import *

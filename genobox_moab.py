@@ -158,7 +158,6 @@ def submit_xmsub(calls, home, paths, logger, runname, queue, cpu, depend, hold, 
    import subprocess
    import time
    
-   group = 'cdrom'
    ids = []
    for i in range(len(calls)):
       call = calls[i]
