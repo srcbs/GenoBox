@@ -22,8 +22,8 @@ def interleave(pe1, pe2, out, format):
     
     # open handles
     if format.find("gz") > -1:
-        fh_pe1 = os.popen('gzcat %s' % pe1, 'r')
-        fh_pe2 = os.popen('gzcat %s' % pe2, 'r')
+        fh_pe1 = os.popen('gzip -d %s' % pe1, 'r')
+        fh_pe2 = os.popen('gzip -d %s' % pe2, 'r')
     else:
         fh_pe1 = open(pe1, 'r')
         fh_pe2 = open(pe2, 'r')
