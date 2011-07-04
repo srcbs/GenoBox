@@ -3,7 +3,7 @@
 
 # class
 class Moab:
-   '''Submits a list of calls to the scheduler using msub/xmsub. Job dependencies are controlled using depend (logical), depend_type ('one2one', 'expand', 'conc', 'complex'), depend_val (list of integers) and ids (list of jobids):
+   '''Submits a list of calls to the scheduler using msub/xmsub. Job dependencies are controlled using depend (logical), depend_type ('one2one', 'expand', 'conc', 'complex', 'all'), depend_val (list of integers) and ids (list of jobids):
          
          'one2one' makes job 1 dependent on id 1, job 2 on id 2 ...
          'expand' makes n first jobs dependent on id 1, next n jobs dependent on id 2 ...
@@ -13,7 +13,7 @@ class Moab:
       Jobs are submitted as hold by default and should be released using Moab.release().
    '''
    
-   def __init__(self, calls, logfile=None, runname='run_test', queue='cbs', cpu='nodes=1:ppn=1,mem=2gb,walltime=43200', depend=False, depend_type='one2one', depend_val=[], hold=True, depend_ids=[]):
+   def __init__(self, calls, logfile=None, runname='run_test', queue='cbs', cpu='nodes=1:ppn=1,mem=2gb,walltime=43200', depend=False, depend_type='one2one', depend_val=[], hold=True, depend_ids=[], env=None):
       '''Constructor for Moab class'''
       self.calls = calls
       self.runname = runname
@@ -25,13 +25,14 @@ class Moab:
       self.depend_val = depend_val
       self.hold = hold
       self.depend_ids = depend_ids
+      self.env = env
       
       # put jobs in queue upon construction
       self.dispatch()
    
    def __repr__(self):
       '''Return string of attributes'''
-      msg = 'Moab(%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)' % ("["+", ".join(self.calls)+"]", self.logfile, self.runname, self.queue,  self.cpu, str(self.depend), self.depend_type, "["+", ".join(map(str,self.depend_val))+"]", str(self.hold), "["+", ".join(self.depend_ids)+"]")
+      msg = 'Moab(%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)' % ("["+", ".join(self.calls)+"]", self.logfile, self.runname, self.queue,  self.cpu, str(self.depend), self.depend_type, "["+", ".join(map(str,self.depend_val))+"]", str(self.hold), "["+", ".join(self.depend_ids)+"]", self.env)
       return msg
    
    def get_logger(self):
@@ -87,10 +88,11 @@ class Moab:
             elif self.depend_type == 'conc':
                n = int(self.depend_val[0])
                depends = []
+               depend_ids = self.depend_ids     # do not want to remove from self.depend_ids because it will remove the ids from input class                
                for j in range(len(self.calls)):
-                  s = ':'.join(self.depend_ids[:int(n)])
+                  s = ':'.join(depend_ids[:int(n)])
                   depends.append(s)
-                  self.depend_ids = self.depend_ids[int(n):]
+                  depend_ids = depend_ids[int(n):]
             
             elif self.depend_type == 'complex':
                old_index = 0
@@ -99,6 +101,13 @@ class Moab:
                   s = ':'.join(self.depend_ids[old_index:(index+old_index)])
                   depends.append(s)
                   old_index=index
+            
+            elif self.depend_type == 'all':
+               depends = []
+               for j in range(len(self.calls)):
+                  curr = ':'.join(self.depend_ids)
+                  depends.append(curr)
+            
             else:
                raise AttributeError('depend_type not recognized: %s' % self.depend_type)
       return depends
@@ -129,17 +138,17 @@ class Moab:
          # create xmsub commands
          cmd = '/panvol1/simon/bin/pipeline/xmsub'
          
-         # toggle if job should be on hold
-         if self.hold:
-            cmd = '%s -h ' % cmd
+         # toggle if job should be on hold or env variable should be added
+         if self.hold: cmd = '%s -h ' % cmd
+         if self.env: cmd = cmd + ' -v %s' % self.env
+         
          if not self.depend:
             xmsub = cmd+' -d %s -l %s -O %s -E %s -r y -q %s -N %s -t %s' % (home, self.cpu, stdout, stderr, self.queue, self.runname, call)
          else:
             xmsub = cmd+' -d %s -l %s,depend=%s -O %s -E %s -r y -q %s -N %s -t %s' % (home, self.cpu, depends[i], stdout, stderr, self.queue, self.runname, call)
          
          time.sleep(0.1)
-         if logger:
-            logger.info(xmsub)
+         if logger: logger.info(xmsub)
                    
          # submit
          try:
@@ -183,18 +192,17 @@ class Moab:
          
          # create msub command
          cmd = 'msub'
-         if self.hold:
-            cmd = '%s -h' % cmd
+         # toggle if on hold or env variable
+         if self.hold: cmd = '%s -h' % cmd
+         if self.env: cmd = cmd + ' -v %s' % self.env
+         
          if not self.depend:
             msub = '%s -d %s -l %s -o %s -e %s -q %s -r y -N %s %s' % (cmd, home, self.cpu, stdout, stderr, self.queue, self.runname, filename)
          else:
             msub = '%s -d %s -l %s,depend=%s -o %s -e %s -q %s -r y -N %s %s' % (cmd, home, self.cpu, depends[i], stdout, stderr, self.queue, self.runname, filename)
          
          time.sleep(0.1)
-         
-         if logger:
-            logger.info(msub)
-         
+         if logger: logger.info(msub)
          # submit
          try:
             id = subprocess.check_output(msub, shell=True)
