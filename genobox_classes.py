@@ -233,7 +233,7 @@ class Moab:
       # create job dependencies
       depends = self.create_dependencies()
       
-      if self.calls[0].find('|') > -1 or self.calls[0].find('<') > -1 or self.calls[0].find('>>') > -1:
+      if self.calls[0].find('|') > -1 or self.calls[0].find('<') > -1 or self.calls[0].find('>>') > -1 or self.calls[0].find(';') > -1:
          # perform wrapcmd if calls includes pipes / left-redirects
          self.ids = self.submit_wrapcmd(depends, logger)
       else:

@@ -22,8 +22,9 @@ def interleave(i):
       import genobox_modules
       paths = genobox_modules.setSystem()
       
-      # change to genobox_denovo_interleave.py <file1> <file2> <format> <out.gz>
-      cmd = '%sgenobox_denovo_interleave.py %s %s %s %s' % (paths['genobox_home'], reads[0], reads[1], format, interleaved)
+      # shuffle <file1> <file2> <out>
+      if format.find('fastq') > -1: cmd = '%sshuffleSequences_fastq.pl %s %s %s' % (paths['velvet_home'], reads[0], reads[1], interleaved)
+      if format.find('fastq') > -1: cmd = '%sshuffleSequences_fasta.pl %s %s %s' % (paths['velvet_home'], reads[0], reads[1], interleaved)
       return cmd
    
    # check if format can be merged (fasta, fastq)
@@ -33,13 +34,10 @@ def interleave(i):
          if len(i) > 2:
             format = i[0]
             reads = i[1:3]
-            interleaved = reads[0] + '.interleaved.gz'
+            interleaved = reads[0] + '.interleaved'
             # set new format
-            if format == 'fasta': new_format = 'fasta.gz'
-            elif format == 'fastq': new_format = 'fastq.gz'
-            else: new_format = '%s' % format
             call = merge(reads, format, interleaved)
-            return (call, [new_format, interleaved])
+            return (call, [format, interleaved])
          else:
             return (None, i)
       else:
@@ -86,11 +84,7 @@ def create_velveth_calls(args):
          velveth_calls.append(call)
    else:
       raise ValueError('ksizes must be one value giving ksize, two values giving lower and upper limit (step will be 2) or three values giving lower limit, upper limit and step')
-   return velveth_calls
-
-def parse_output(args):
-   '''Parse output of several ksizes and return the one with best N50 vs assembly length'''
-   
+   return velveth_calls   
 
 def create_velvetg_calls(args):
    '''Return velvetg calls'''
@@ -125,6 +119,62 @@ def create_velvetg_calls(args):
       velvetg_calls.append(cmds[i]+arg)
     
    return velvetg_calls
+
+def get_best_assembly(args):
+   '''Identify the best assembly from several k-mers'''
+   
+   # read in stats.txt files for each assembly. Calc sum of contigs and N50.
+   import genobox_modules
+   paths = genobox_modules.setSystem()
+   
+   cmd = '%sR-2.12 --vanilla ' % paths['R_home']
+   
+   # set argument
+   if len(args.ksizes) == 1:
+      arg = ' %s %s' % (args.outpath, args.ksizes[0])
+   elif len(args.ksizes) >= 2:
+      if len(args.ksizes) == 2:
+         step = 2
+      elif len(args.ksizes) == 3:
+         step = args.ksizes[2]
+      
+      arg_list = []
+      for k in range(int(args.ksizes[0]), int(args.ksizes[1]), int(step)):
+         out = '%s_%s/stats.txt %s' % (args.outpath, k, k)
+         arg_list.append(out)
+      arg = ' '.join(arg_list)
+   
+   call = [cmd + arg + ' < %sgenobox_denovo_velvet_parse.R' % (paths['genobox_home'])]
+   return call
+
+def accept_assembly(args):
+   '''Parse best assembly and remove other assemblies'''
+   
+   import re
+   
+   # parse velvet_parse.txt file
+   reg = re.compile('(\d+)')
+   fh = open('velvet_parse.txt', 'r')
+   for line in fh:
+      line = line.rstrip()
+      if line.find('Rank') > -1:
+         match = reg.findall(line)
+         best_assembly = match[0]
+         rm_assemblies = match[1:]
+   
+   calls = []
+   # move that assembly to final args.outpath
+   cmd = 'mv'
+   arg = ' %s_%s %s' % (args.outpath, best_assembly, args.outpath)
+   calls.append(cmd+arg)
+   
+   # remove other assemblies
+   cmd = 'rm'
+   for k in rm_assemblies:
+      arg = ' -r %s_%s' % (args.outpath, k)
+      calls.append(cmd+arg)
+   
+   return ['; '.join(calls)]
 
 def start_assembly(args, logger='logfile.txt'):
    '''Start assembly'''
@@ -164,6 +214,8 @@ def start_assembly(args, logger='logfile.txt'):
    velvetg_calls = create_velvetg_calls(args)
    
    # velvet parse calls
+   velvetparse_calls = get_best_assembly(args)
+   velvetaccept_calls = accept_assembly(args)
    
    # set environment variable:
    env_var = 'OMP_NUM_THREADS=%i' % int(args.n - 1)
@@ -177,16 +229,26 @@ def start_assembly(args, logger='logfile.txt'):
       interleave_moab = Moab(interleave_calls, logfile=logger, runname='run_genobox_interleave', queue=args.queue, cpu=cpuF)
       velveth_moab = Moab(velveth_calls, logfile=logger, runname='run_genobox_velveth', queue=args.queue, cpu=cpuV, depend=True, depend_type='all', depend_val=[1], depend_ids=interleave_moab.ids, env=env_var)
    velvetg_moab = Moab(velvetg_calls, logfile=logger, runname='run_genobox_velvetg', queue=args.queue, cpu=cpuV, depend=True, depend_type='one2one', depend_val=[1], depend_ids=velveth_moab.ids)
+   # submit job for velvetparse if more than one ksize was chosen
+   if len(args.ksizes) > 1:
+      velvetparse_moab = Moab(velvetparse_calls, logfile=logger, runname='run_genobox_velvetparse', queue=args.queue, cpu=cpuA, depend=True, depend_type='conc', depend_val=[len(velvetg_calls)], depend_ids=velvetg_moab.ids)
+      velvetaccept_moab = Moab(velvetaccept_calls, logfile=logger, runname='run_genobox_velvetaccept', queue=args.queue, cpu=cpuA, depend=True, depend_type='one2one', depend_val=[1], depend_ids=velvetparse_moab.ids) 
    
    # release jobs
    print "Releasing jobs"
    if len(interleave_calls) > 0: interleave_moab.release()
    velveth_moab.release()
    velvetg_moab.release()
+   if len(args.ksizes) > 1: 
+      velvetparse_moab.release()
+      velvetaccept_moab.release()
    
    # semaphore (consensus is currently not waited for)
    print "Waiting for jobs to finish ..."
-   s = Semaphore(velvetg_moab.ids, home, 'velvet', args.queue, 20, 2*86400)
+   if len(args.ksizes) > 1:
+      s = Semaphore(velvetaccept_moab.ids, home, 'velvet', args.queue, 20, 2*86400)
+   else:
+      s = Semaphore(velvetg_moab.ids, home, 'velvet', args.queue, 20, 2*86400)
    s.wait()
    print "--------------------------------------"
 
@@ -218,13 +280,13 @@ parser.add_argument('--queue', help='queue to submit jobs to (idle, cbs, cpr, cg
 parser.add_argument('--log', help='log level [info]', default='info')
 
 args = parser.parse_args()
-#args = parser.parse_args('--short fastq test_1.fq test_2.fq --ksizes 33 41 2 --outpath test'.split())
-#args = parser.parse_args('--short fastq.gz interleaved.fastq.gz --ksizes 33 --outpath test'.split())
+#args = parser.parse_args('--short fastq test_1.fq test_2.fq --ksizes 33 49 4 --outpath test'.split())
+#args = parser.parse_args('--short fastq.gz Kleb-10-213361_2.interleaved.fastq.test.gz --ksizes 41 55 4 --outpath Kleb'.split())
 
 # add_velveth and add_velvetg works from commandline, eg:
 # genobox_denovo_velvet.py --short fastq.gz interleaved.fastq.gz --ksizes 33 --outpath test --add_velvetg "-very_clean yes"
 
-start_assembly(args, 'logfile.txt')
+start_assembly(args, 'logfile2.txt')
 
 
 
