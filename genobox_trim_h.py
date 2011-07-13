@@ -8,6 +8,7 @@ import sys
 import random
 import string
 import cdb
+import multiprocessing
 
 class FastqTrim:
    '''Trim/Filter paired end fastq:
@@ -170,6 +171,22 @@ class FastqTrim:
             else:
                map(os.remove, files)
       
+      def write_out(db_common, f, o):
+         '''Write out reads'''
+         
+         fh = open(f, 'r')
+         out = open(o, 'w')
+         written_count = 0
+         total_count = 0
+         for (title, sequence, quality) in FastqGeneralIterator(fh):
+            total_count += 1
+            if db_common.has_key(title[:-2]):
+               out.write('@%s\n%s\n+\n%s\n' % (title, sequence, quality))
+               written_count += 1
+         sys.stderr.write('%s: Total %i, Written %i (%.1f%%)\n' % (f, total_count, written_count, written_count/total_count*100))
+         fh.close()
+         out.close()
+      
       ## get headers from both trimmed files ##
       # strip the /2 or /1 and grab only the headers
       # write in dbm to minimze memory usage
@@ -209,56 +226,31 @@ class FastqTrim:
       db_common.finish()
       del(db_common)
       
-      # parse through each file and write if read is in db_common
-      out1 = open(self.o[0], 'w')
-      out2 = open(self.o[1], 'w')
-      fh1 = open(f1, 'r')
-      fh2 = open(f2, 'r')
-      
       # open common db
       db_common = cdb.init(dbcommon_fname)
-      # write out for read 1
-      written_count = 0
-      total_count = 0
-      for (title, sequence, quality) in FastqGeneralIterator(fh1):
-         total_count += 1
-         if db_common.has_key(title[:-2]):
-            out1.write('@%s\n%s\n+\n%s\n' % (title, sequence, quality))
-            written_count += 1
-      sys.stderr.write('%s: Total %i, Written %i (%.1f%%)\n' % (self.f[0], total_count, written_count, written_count/total_count*100))
+      jobs = []
+      p = multiprocessing.Process(target=write_out, args=(db_common, f1, self.o[0]))
+      p.start()
+      jobs.append(p)
       
-      # write out for read 2
-      written_count = 0
-      total_count = 0
-      for (title, sequence, quality) in FastqGeneralIterator(fh2):
-         total_count += 1
-         if db_common.has_key(title[:-2]):
-            out2.write('@%s\n%s\n+\n%s\n' % (title, sequence, quality))
-            written_count += 1
-      sys.stderr.write('%s: Total %i, Written %i (%.1f%%)\n' % (self.f[1], total_count, written_count, written_count/total_count*100))
+      p = multiprocessing.Process(target=write_out, args=(db_common, f2, self.o[1]))
+      p.start()
+      jobs.append(p)
       
-      out1.close()
-      out2.close()
-      fh1.close()
-      fh2.close()
+      # wait for jobs to finish
+      for job in jobs:
+         job.join()
+      
       rm_files([db1_fname, db2_fname, dbcommon_fname, f1, f2])
    
    def trim(self, paired=False):
-      '''Start trimming of single end reads'''
+      '''Start trimming of reads'''
       
-      if paired:
-         rand = ''.join(random.choice(string.ascii_uppercase + string.digits) for x in range(36))
-      
-      for i,f in enumerate(self.f):
+      def trim_file(self, f, f_out):
          written = 0
          total = 0      
          fh_in = open(f, 'r')
-         
-         if paired: 
-            fh_out = open('tmp'+str(i)+'.'+rand, 'w')
-         else:
-            fh_out = open(self.o[0], 'w')
-         
+         fh_out = open(f_out, 'w')
          for (title, sequence, quality) in FastqGeneralIterator(fh_in):
             total += 1
             (title, sequence, quality) = self.filter_adaptor(title, sequence, quality)
@@ -270,11 +262,27 @@ class FastqTrim:
                written += 1
          fh_out.close()
          fh_in.close()
-               
-         sys.stderr.write('%s: written %s of %s (%.1f%%)\n' % (self.f[i], written, total, written/total))
+         sys.stderr.write('%s: written %s of %s (%.1f%%)\n' % (f, written, total, written/total))
       
       if paired:
-         self.write_pairs('tmp0.'+rand, 'tmp1.'+rand)
+         jobs = []
+         rand = ''.join(random.choice(string.ascii_uppercase + string.digits) for x in range(36))
+         f_out = ['tmp0.'+rand, 'tmp1.'+rand]
+         
+         # create and start processes
+         for i in range(2):
+            p = multiprocessing.Process(target=trim_file, args=(self, self.f[i], f_out[i], ))
+            p.start()
+            jobs.append(p)
+         
+         # wait for jobs to finish
+         for job in jobs:
+            job.join()
+         
+         # write files
+         self.write_pairs(f_out[0], f_out[1])
+      else:
+         trim_file(self, self.f[0], self.o[0])
 
 if __name__ == '__main__':
       
