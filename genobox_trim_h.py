@@ -187,32 +187,39 @@ class FastqTrim:
          fh.close()
          out.close()
       
+      def create_db(f, db_fname):
+         '''Write out db of headers'''
+         
+         fh = open(f, 'r')
+         fh_headers = (x.strip()[1:-2] for i, x in enumerate(fh) if not (i % 4))
+         
+         db = cdb.cdbmake(db_fname, db_fname + '.tmp')
+         for h in fh_headers:
+            db.add(h, 'T')
+         db.finish()
+         del(db)
+      
       ## get headers from both trimmed files ##
       # strip the /2 or /1 and grab only the headers
       # write in dbm to minimze memory usage
       
-      # file 1
-      fh1 = open(f1, 'r')
-      fh1_headers = (x.strip()[1:-2] for i, x in enumerate(fh1) if not (i % 4))
-      
-      # create db
+      # create db's (parallel)
       rand = ''.join(random.choice(string.ascii_uppercase + string.digits) for x in range(36))
       db1_fname = 'db1_%s' % rand
-      db1 = cdb.cdbmake(db1_fname, db1_fname + '.tmp')
-      for h in fh1_headers:
-         db1.add(h, 'T')
-      db1.finish()
-      del(db1)
-      
-      # file 2
-      fh2 = open(f2, 'r')
-      fh2_headers = (x.strip()[1:-2] for i, x in enumerate(fh2) if not (i % 4))
       db2_fname = 'db2_%s' % rand
-      db2 = cdb.cdbmake(db2_fname, db2_fname + '.tmp')
-      for h in fh2_headers:
-         db2.add(h, 'T')
-      db2.finish()
-      del(db2)
+      
+      jobs = []
+      p = multiprocessing.Process(target=create_db, args=(f1, db1_fname, ))
+      p.start()
+      jobs.append(p)
+      
+      p = multiprocessing.Process(target=create_db, args=(f2, db2_fname, ))
+      p.start()
+      jobs.append(p)
+      
+      # wait for jobs to finish
+      for job in jobs:
+         job.join()
       
       ## get headers that are in both trimmed files ##
       db1 = cdb.init(db1_fname)

@@ -57,7 +57,7 @@ def start_trim(args, logger):
    cpuE = 'nodes=1:ppn=1,mem=5gb,walltime=172800'
    cpuF = 'nodes=1:ppn=2,mem=2gb,walltime=172800'
    cpuB = 'nodes=1:ppn=16,mem=10gb,walltime=172800'
-   
+      
    # create path
    if not os.path.exists('trimmed'):
       os.makedirs('trimmed')
@@ -71,7 +71,7 @@ def start_trim(args, logger):
    if args.se:
       single_moab = Moab(single_calls, logfile=logger, runname='run_genobox_trimse', queue=args.queue, cpu=cpuA)
    if args.pe1 and args.pe2:
-      paired_moab = Moab(paired_calls, logfile=logger, runname='run_genobox_trimpe', queue=args.queue, cpu=cpuA)
+      paired_moab = Moab(paired_calls, logfile=logger, runname='run_genobox_trimpe', queue=args.queue, cpu=cpuF)
       
    # release jobs
    print "Releasing jobs"
