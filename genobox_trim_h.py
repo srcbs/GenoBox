@@ -33,17 +33,59 @@ class FastqTrim:
       self.keep_n = keep_n
       self.M = M
       self.a = a
+      self.paired = False
+      self.interleaved = False
       
-      # set adaptors and fastq format
+      # set adaptors, readtype, fastq format
       self.adaptors = self.set_adaptors()
+      self.set_readtype()
       self.format = genobox_modules.set_filetype(self.f[0])
       if self.format == 'fastq':
          self.fqtype = genobox_modules.set_fqtype(self.f[0])
    
    
    def __repr__(self):
-      msg = 'FastqTrim(%s, %s, %i, %i, %i, %s, %i)' % ("["+", ".join(self.f)+"]", "["+", ".join(self.o)+"]", self.l, self.q, self.m, self.keep_n, self.M)
+      msg = 'FastqTrim(%s, %s, %i, %i, %i, %s, %i, %s, %s)' % ("["+", ".join(self.f)+"]", "["+", ".join(self.o)+"]", self.l, self.q, self.m, self.keep_n, self.M, self.paired, self.interleaved)
       return msg
+   
+   def set_readtype(self):
+      '''Set paired and/or interleaved flags'''
+            
+      def check_interleaved(self):
+         '''Check if a file is interleaved paired or single'''
+         
+         fh = open(self.f[0], 'r')
+         count = 0
+         ends = []
+         for (title, sequence, quality) in FastqGeneralIterator(fh):
+            ends.append(title[-2:])
+            count += 1
+            if count > 9: break
+         
+         # check that they are interleaved (eg. /1, /2, /1, /2)
+         interleaved = True
+         for i,e in enumerate(ends[::2]):
+            if e != '/1':
+               interleaved = False
+               break
+         
+         for i,e in enumerate(ends[1::2]):
+            if e != '/2':
+               interleaved = False
+               break
+         
+         if interleaved:
+            self.paired = True
+            self.interleaved = True
+         
+         return self
+      
+      
+      if len(self.f) == 2:
+         self.paired = True
+         self.interleaved = False
+      elif len(self.f) == 1:
+         self = check_interleaved(self)
    
    def set_adaptors(self):
       '''Set adaptors according to adaptor length requirements'''
@@ -250,7 +292,7 @@ class FastqTrim:
       
       rm_files([db1_fname, db2_fname, dbcommon_fname, f1, f2])
    
-   def trim(self, paired=False):
+   def trim(self, paired=False, interleave=False):
       '''Start trimming of reads'''
       
       def trim_file(self, f, f_out):
@@ -271,25 +313,55 @@ class FastqTrim:
          fh_in.close()
          sys.stderr.write('%s: written %s of %s (%.1f%%)\n' % (f, written, total, written/total))
       
-      if paired:
-         jobs = []
+      def trim_interleaved_file(self, f, f_out):
+         written = 0
+         total = 0      
+         fh_in = open(f, 'r')
+         fh_out = [open(f_out[0], 'w'), open(f_out[1], 'w')]
+         for (title, sequence, quality) in FastqGeneralIterator(fh_in):
+            (title, sequence, quality) = self.filter_adaptor(title, sequence, quality)
+            (title, sequence, quality) = self.trim_qual(title, sequence, quality)
+            if title != None:
+               if len(sequence) != len(quality):
+                  raise ValueError('sequence and quality not of the same length\n%s\n%s\n' % (sequence, quality))
+               fh_out[total%2].write('@%s\n%s\n+\n%s\n' % (title, sequence, quality))
+               written += 1
+            total += 1
+         fh_out[0].close()
+         fh_out[1].close()
+         fh_in.close()
+         sys.stderr.write('%s: written %s of %s (%.1f%%)\n' % (f, written, total, written/total))
+            
+      if self.paired:
+         # set tmp files
          rand = ''.join(random.choice(string.ascii_uppercase + string.digits) for x in range(36))
          f_out = ['tmp0.'+rand, 'tmp1.'+rand]
          
-         # create and start processes
-         for i in range(2):
-            p = multiprocessing.Process(target=trim_file, args=(self, self.f[i], f_out[i], ))
-            p.start()
-            jobs.append(p)
+         # check if file is interleaved
          
-         # wait for jobs to finish
-         for job in jobs:
-            job.join()
-         
+         if self.interleaved:
+            sys.stderr.write('Trimming paired end interleaved\n')
+            trim_interleaved_file(self, self.f[0], f_out)
+         else:
+            # create and start multiprocess
+            sys.stderr.write('Trimming paired end\n')
+            jobs = []
+            for i in range(2):
+               p = multiprocessing.Process(target=trim_file, args=(self, self.f[i], f_out[i], ))
+               p.start()
+               jobs.append(p)
+            
+            # wait for jobs to finish
+            for job in jobs:
+               job.join()
+            
          # write files
          self.write_pairs(f_out[0], f_out[1])
       else:
+         sys.stderr.write('Trimming single end\n')
          trim_file(self, self.f[0], self.o[0])
+            
+      
 
 if __name__ == '__main__':
       
@@ -309,17 +381,12 @@ if __name__ == '__main__':
    parser.add_argument('--log', help='log level [INFO]', default='info')
    
    args = parser.parse_args()
-   #args = parser.parse_args(''.split())
+   #args = parser.parse_args('--i Kleb-10-213361_2.interleaved.fastq --o Kleb-10-213361_2_1.interleaved.fastq.trim.fastq Kleb-10-213361_2_2.interleaved.fastq.trim.fastq'.split())
    #args = parser.parse_args('--i kleb_test_2.fq --l 25 --q 20 --o kleb_test_2.trim.fq'.split())
    #args = parser.parse_args('--i Kleb-10-213361_2_1_sequence.txt Kleb-10-213361_2_2_sequence.txt --M 15 --o Kleb-10-213361_2_1_sequence.trim.fq Kleb-10-213361_2_2_sequence.trim.fq '.split())
    
    # create instance
    fqtrim = FastqTrim(args.i, args.o, args.min_length, args.min_baseq, args.min_avgq, args.keep_n, args.min_adaptor_match, args.adaptors)
-   
    # start trimming
-   if len(fqtrim.f) == 2: 
-      fqtrim.trim(paired=True)
-   elif len(fqtrim.f) == 1: 
-      fqtrim.trim()
-   else:
-      raise ValueError('Only 1 (single end) or 2 (paired end) files must be given')
+   fqtrim.trim()
+   

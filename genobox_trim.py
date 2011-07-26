@@ -57,7 +57,7 @@ def start_trim(args, logger):
    cpuE = 'nodes=1:ppn=1,mem=5gb,walltime=172800'
    cpuF = 'nodes=1:ppn=2,mem=2gb,walltime=172800'
    cpuB = 'nodes=1:ppn=16,mem=10gb,walltime=172800'
-      
+   
    # create path
    if not os.path.exists('trimmed'):
       os.makedirs('trimmed')

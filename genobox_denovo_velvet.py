@@ -37,6 +37,87 @@ def required_nargs(min,max):
          setattr(args, self.dest, value)
    return RequiredInterval
 
+def set_kmersizes(args, no_reads=10000, step=4):
+   '''Automatically sets kmersizes from avg read lengths'''
+   
+   from Bio.SeqIO.QualityIO import FastqGeneralIterator
+   from Bio import SeqIO
+   import sys
+   
+   def average(values):
+      '''Computes the arithmetic mean of a list of numbers.'''
+      return sum(values, 0.0) / len(values)
+   
+   def get_readlengths(f, no_reads):
+      '''Get avg. readlengths of no_reads'''
+            
+      def get_filetype(f):
+         '''Return filetype (fasta/fastq)'''
+         
+         inhandle = open(f, "r")
+         line = inhandle.readline()
+         if line.startswith(">"):
+            out = 'fasta'
+         elif line.startswith("@"):
+            out = 'fastq'
+         else:
+            raise ValueError('Input must be fasta or fastq')
+         return out
+      
+      # main
+      fh = open(f, 'r')
+      count = 0
+      L = []
+      if get_filetype(f) == 'fastq':
+         for (title, sequence, quality) in FastqGeneralIterator(fh):
+            if count < no_reads:
+               L.append(len(sequence))
+               count = count + 1
+            else:
+               return average(L)
+      elif get_filetype(f) == 'fasta':
+         for rec in SeqIO.parse(fh, 'fasta'):
+            if count < no_reads:
+               L.append(len(rec.seq))
+               count = count + 1
+            else:
+               return average(L)
+      else:
+         raise ValueError('Input must be fasta or fastq')
+   
+   def floor_to_odd(number):
+      number = int(number)
+      if number%2==0:
+         return number - 1
+      else:
+         return number
+   
+   # main
+   files = []
+   if args.short: files.extend(args.short)
+   if args.short2: files.extend(args.short2)
+   if args.shortPaired: files.extend(args.shortPaired)
+   if args.shortPaired2: files.extend(args.shortPaired2)
+   
+   # remove any occurences of fasta, fastq, fastq.gz, fasta.gz
+   files = filter (lambda a: a != 'fasta', files)
+   files = filter (lambda a: a != 'fastq', files)
+   files = filter (lambda a: a != 'fasta.gz', files)
+   files = filter (lambda a: a != 'fastq.gz', files)
+   
+   # get aerage lengths
+   avg_lengths = []
+   for f in files:
+      avg_f = get_readlengths(f, no_reads)
+      avg_lengths.append(avg_f)
+   
+   # get average of files and set ksizes from this
+   avg = average(avg_lengths)
+   ksizes = [str(floor_to_odd(avg/3)), str(floor_to_odd(avg/3*2.5)), '4']
+   sys.stderr.write('Ksizes set to (min, max, step) %s\n' % ' '.join(ksizes))
+   return ksizes
+
+
 def illumina_trim(args, min_length, min_baseq, min_avgq, min_adaptor_match, keep_n):
    '''Create single end trim calls'''
    
@@ -72,24 +153,43 @@ def illumina_trim(args, min_length, min_baseq, min_avgq, min_adaptor_match, keep
             calls.append(cmd+arg)
          args.short2[1:] = outfiles_short2
    
-   if args.shortPaired and args.shortPaired[0] == 'fastq' and len(args.shortPaired) > 2:
+   if args.shortPaired and args.shortPaired[0] == 'fastq':
       outfiles_shortPaired = []
-      outfile_pe1 = 'trimmed/' + os.path.split(args.shortPaired[1])[1] + '.trim.fq'
-      outfile_pe2 = 'trimmed/' + os.path.split(args.shortPaired[2])[1] + '.trim.fq'
-      outfiles_shortPaired.append(outfile_pe1)
-      outfiles_shortPaired.append(outfile_pe2)
-      arg = ' --i %s %s --min_length %i --min_baseq %i --min_avgq %i --min_adaptor_match %i --o %s %s' % (args.shortPaired[1], args.shortPaired[2], min_length, min_baseq, min_avgq,  min_adaptor_match, outfile_pe1, outfile_pe2)
+      if len(args.shortPaired) == 3:
+         outfile_pe1 = 'trimmed/' + os.path.split(args.shortPaired[1])[1] + '.trim.fq'
+         outfile_pe2 = 'trimmed/' + os.path.split(args.shortPaired[2])[1] + '.trim.fq'
+         outfiles_shortPaired.append(outfile_pe1)
+         outfiles_shortPaired.append(outfile_pe2)
+         arg = ' --i %s %s --min_length %i --min_baseq %i --min_avgq %i --min_adaptor_match %i --o %s %s' % (args.shortPaired[1], args.shortPaired[2], min_length, min_baseq, min_avgq,  min_adaptor_match, outfile_pe1, outfile_pe2)
+      elif len(args.shortPaired) == 2:
+         outfile_pe1 = 'trimmed/' + os.path.split(args.shortPaired[1])[1] + '_1.trim.fq'
+         outfile_pe2 = 'trimmed/' + os.path.split(args.shortPaired[1])[1] + '_2.trim.fq'
+         outfiles_shortPaired.append(outfile_pe1)
+         outfiles_shortPaired.append(outfile_pe2)
+         arg = ' --i %s --min_length %i --min_baseq %i --min_avgq %i --min_adaptor_match %i --o %s %s' % (args.shortPaired[1], min_length, min_baseq, min_avgq,  min_adaptor_match, outfile_pe1, outfile_pe2)
+      else:
+         raise ValueError('Length of input to shortPaired is not correct')
+      
       if keep_n: arg = arg + ' --keep_n'
       calls.append(cmd+arg)
       args.shortPaired[1:] = outfiles_shortPaired
    
-   if args.shortPaired2 and args.shortPaired2[0] == 'fastq' and len(args.shortPaired2) > 2:
+   if args.shortPaired2 and args.shortPaired2[0] == 'fastq':
       outfiles_shortPaired2 = []
-      outfile_pe1 = 'trimmed/' + os.path.split(args.shortPaired2[1])[1] + '.trim.fq'
-      outfile_pe2 = 'trimmed/' + os.path.split(args.shortPaired2[2])[1] + '.trim.fq'
-      outfiles_shortPaired2.append(outfile_pe1)
-      outfiles_shortPaired2.append(outfile_pe2)
-      arg = ' --i %s %s --min_length %i --min_baseq %i --min_avgq %i --min_adaptor_match %i --o %s %s' % (args.shortPaired2[1], args.shortPaired2[2], min_length, min_baseq, min_avgq,  min_adaptor_match, outfile_pe1, outfile_pe2)
+      if len(args.shortPaired2) == 3:
+         outfile_pe1 = 'trimmed/' + os.path.split(args.shortPaired2[1])[1] + '.trim.fq'
+         outfile_pe2 = 'trimmed/' + os.path.split(args.shortPaired2[2])[1] + '.trim.fq'
+         outfiles_shortPaired2.append(outfile_pe1)
+         outfiles_shortPaired2.append(outfile_pe2)
+         arg = ' --i %s %s --min_length %i --min_baseq %i --min_avgq %i --min_adaptor_match %i --o %s %s' % (args.shortPaired2[1], args.shortPaired2[2], min_length, min_baseq, min_avgq,  min_adaptor_match, outfile_pe1, outfile_pe2)
+      elif len(args.shortPaired2) == 2:
+         outfile_pe1 = 'trimmed/' + os.path.split(args.shortPaired2[1])[1] + '_1.trim.fq'
+         outfile_pe2 = 'trimmed/' + os.path.split(args.shortPaired2[1])[1] + '_2.trim.fq'
+         outfiles_shortPaired2.append(outfile_pe1)
+         outfiles_shortPaired2.append(outfile_pe2)
+         arg = ' --i %s --min_length %i --min_baseq %i --min_avgq %i --min_adaptor_match %i --o %s %s' % (args.shortPaired2[1], min_length, min_baseq, min_avgq,  min_adaptor_match, outfile_pe1, outfile_pe2)
+      else:
+         raise ValueError('Length of input to shortPaired2 is not correct')
       if keep_n: arg = arg + ' --keep_n'
       calls.append(cmd+arg)
       args.shortPaired2[1:] = outfiles_shortPaired2
@@ -272,6 +372,10 @@ def start_assembly(args, logger):
    cpuF = 'nodes=1:ppn=2,mem=2gb,walltime=172800'
    cpuB = 'nodes=1:ppn=16,mem=10gb,walltime=172800'
    
+   # set kmersizes (if auto)
+   if args.ksizes == ['auto']:
+      args.ksizes = set_kmersizes(args)   
+   
    # trimming calls
    if args.trim: illuminatrim_calls = illumina_trim(args, int(args.ksizes[0]), 15, 20, 15, False)
    
@@ -366,7 +470,7 @@ if __name__ == '__main__':
    parser.add_argument('--shortPaired2', help='input read format and short paired2 reads', nargs='+', action=required_nargs_abspath(0,3))
    parser.add_argument('--long', help='input read format and long reads', nargs='+', action=required_nargs_abspath(0,3))
    parser.add_argument('--longPaired', help='input read format and long paired reads', nargs='+', action=required_nargs_abspath(0,3))
-   parser.add_argument('--ksizes', help='kmers to run assemblies for (single no or range) [33]', nargs='+', default=[33])
+   parser.add_argument('--ksizes', help='kmers to run assemblies for (single (m) or m M s (min, max, step)) [auto]', nargs='+', default=['auto'])
    parser.add_argument('--sample', help='name of run and output directory [velvet_assembly]', default='velvet_assembly')
    parser.add_argument('--outpath', help='name of assembly output dir [assembly]', default='assembly')
    parser.add_argument('--trim', help='should input files be trimmed (illumina only) [False]', default=False, action='store_true')
