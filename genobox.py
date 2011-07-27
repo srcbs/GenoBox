@@ -50,7 +50,6 @@ def required_interval(nmin,nmax):
          setattr(args, self.dest, value)
    return RequiredInterval
 
-
 def required_choices(choices):
    '''Enforces input numbers (int/float) to be within min and max'''
    class RequiredChoices(argparse.Action):
@@ -65,6 +64,27 @@ def required_choices(choices):
          setattr(args, self.dest, input)
    return RequiredChoices
 
+def required_nargs_abspath(min,max):
+   '''Enforces input to nargs to be between min and max long and sets abspath for input 1:'''
+   class RequiredInterval(argparse.Action):
+      def __call__(self, parser, args, value, option_string=None):
+         if not min<=len(value)<=max:
+            msg='argument "{f}" requires between {min} and {max} arguments'.format(
+               f=self.dest,min=min,max=max)
+            raise argparse.ArgumentTypeError(msg)
+         setattr(args, self.dest, value)
+         import os
+         if type(value) == str:
+            f_abs = os.path.abspath(value)
+            setattr(args, self.dest, f_abs)
+         elif type(value) == list:
+            new_list = [value[0]]
+            for f in value[1:]:
+               new_list.append(os.path.abspath(f))
+            setattr(args, self.dest, new_list)
+         else:
+            setattr(args, self.dest, value)
+   return RequiredInterval
 
 
 parser = argparse.ArgumentParser(prog='genobox.py',
@@ -76,6 +96,7 @@ parser = argparse.ArgumentParser(prog='genobox.py',
 parent_parser = argparse.ArgumentParser(add_help=False)
 parent_parser.add_argument('--sample', help='name of run and output directory', default=None)
 parent_parser.add_argument('--n', help='number of threads for parallel run [4]', default=4, type=int)
+parent_parser.add_argument('--m', help='memory needed for high-memory jobs [7gb]', default='7gb')
 parent_parser.add_argument('--queue', help='queue to submit jobs to (idle, cbs, cpr, cge, urgent) [cbs]', default='cbs')
 parent_parser.add_argument('--log', help='log level [INFO]', default='info')
 
@@ -159,6 +180,24 @@ parser_bcf2ref.add_argument('--rmsk', help='rmsk to use', default=None, action=s
 parser_bcf2ref.add_argument('--indels', help='indels vcf to remove', default=None, action=set_abspath())
 parser_bcf2ref.add_argument('--o', help='output prefix for ref.ann.vcf.gz files [genotyping/refcalls.flt.vcf.gz]', default='genotyping/refcalls.flt.vcf.gz')
 
+# velvet
+parser_velvet = subparsers.add_parser('velvet', help='Run velvet denovo assembly', parents=[parent_parser], formatter_class=lambda prog: argparse.HelpFormatter(prog,max_help_position=50, width=140), usage='genobox.py velvet [options]', description=
+   '''Run Velvet denovo assembly, add_velvetg/add_velveth has to be added with quotes, eg: add_velvetg "-very_clean yes".\nFormat can be: fasta, fastq, raw, fasta.gz, fastq.gz, raw.gz, sam, bam.\nDefault ksizes (auto) will run a range (read_length/3 ... read_length/3*2) with step 4 between \n''')
+parser_velvet.add_argument('--short', help='format and short reads', nargs='+', action=required_nargs_abspath(0,3))
+parser_velvet.add_argument('--shortPaired', help='format and short paired reads', nargs='+', action=required_nargs_abspath(0,3))
+parser_velvet.add_argument('--short2', help='format and short2 reads', nargs='+', action=required_nargs_abspath(0,3))
+parser_velvet.add_argument('--shortPaired2', help='format and short paired2 reads', nargs='+', action=required_nargs_abspath(0,3))
+parser_velvet.add_argument('--long', help='format and long reads', nargs='+', action=required_nargs_abspath(0,3))
+parser_velvet.add_argument('--longPaired', help='format and long paired reads', nargs='+', action=required_nargs_abspath(0,3))
+parser_velvet.add_argument('--ksizes', help='kmers to run assemblies for (single (m) or m M s (min, max, step)) [auto]', nargs='+', default=['auto'])
+parser_velvet.add_argument('--outpath', help='name of run, also output dir [assembly]', default='assembly')
+parser_velvet.add_argument('--trim', help='should input files be trimmed (illumina only) [False]', default=False, action='store_true')
+parser_velvet.add_argument('--min_contig_lgth', help='mininum length to report contig [100]', default=100, type=int)
+parser_velvet.add_argument('--cov_cut', help='coverage cutoff for removal of low coverage (float) [None]', default=None, type=float)
+parser_velvet.add_argument('--exp_cov', help='Expected mean coverage (None, float, auto) [auto]', default='auto')
+parser_velvet.add_argument('--ins_length', help='insert size (reads included) [None]', default=None, type=int)
+parser_velvet.add_argument('--add_velveth', help='additional parameters to velveth', default=None)
+parser_velvet.add_argument('--add_velvetg', help='additional parameters to velvetg', default=None)
 
 # abgv
 parser_abgv = subparsers.add_parser('abgv', help='Perform alignment, bam-processing, genotyping and filtering', parents=[parent_parser], formatter_class=lambda prog: argparse.HelpFormatter(prog,max_help_position=35, width=100), usage='genobox.py abgv [options]')
@@ -192,7 +231,7 @@ parser_abgv.add_argument('--ex', help='exhange chromosome names using file [None
 parser_abgv.add_argument('--dbsnp', help='dbsnp file to use (vcf.gz format)', default=None, action=set_abspath())
 parser_abgv.add_argument('--ovar', help='output variant vcf-file [genotyping/\"name\".var.flt.vcf.gz]', default='genotyping/var.flt.vcf.gz')
 parser_abgv.add_argument('--oref', help='output reference vcf-file [genotyping/\"name\".ref.flt.vcf.gz]', default='genotyping/ref.flt.vcf.gz')
-
+parser_abgv.add_argument('--denovo', help='perform denovo assembly of unmapped reads [False]', default=False, action='store_true')
 
 
 # parse args
@@ -272,7 +311,10 @@ elif args.module == 'bcf2ref':
 elif args.module == 'abgv':
    from genobox_abgv import *
    start_abgv(args, logger)
-   
+
+elif args.module == 'velvet':
+   from genobox_denovo_velvet import *
+   start_assembly(args, logger)
 else:
    pass
 
