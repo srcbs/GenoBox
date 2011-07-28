@@ -120,12 +120,13 @@ parser_alignment = subparsers.add_parser('alignment', help='Single and paired en
 parser_alignment.add_argument('--se', help='input single end fqfiles', nargs='+', action=set_abspath(), default=[])
 parser_alignment.add_argument('--pe1', help='input paired end fqfiles PE1', nargs='+', action=set_abspath(), default=[])
 parser_alignment.add_argument('--pe2', help='input paired end fqfiles PE2', nargs='+', action=set_abspath(), default=[])
-parser_alignment.add_argument('--fa', help='input fasta to map against', action=set_abspath())
+parser_alignment.add_argument('--fa', help='input fasta to map against', required=True, action=set_abspath())
 parser_alignment.add_argument('--libfile', help='input parameter file', action=set_abspath())
 parser_alignment.add_argument('--libs', help='if --libfile is not given, library names for each input fq (order: se, pe1, pe2)', nargs='+', default=['lib'])
 parser_alignment.add_argument('--pl', help='if --libfile is not given, platform for each input fq (order: se, pe1, pe2)', nargs='+', default=['ILLUMINA'], action=required_choices(['CAPILLARY', 'LS454', 'ILLUMINA', 'SOLID', 'HELICOS', 'IONTORRENT', 'PACBIO']))
 parser_alignment.add_argument('--a', help='maximum insert size for bwa sampe (-a) [500]', default=500, type=int)
 parser_alignment.add_argument('--qtrim', help='quality threshold to trim 3\'', default=0, type=int, action=required_interval(0,1000))
+parser_alignment.add_argument('--N', help='maximum number of alignments to output in the XA tag [3]', default=3, type=int)
 
 # bam process
 parser_bamprocess = subparsers.add_parser('bamprocess', help='Sort, filter, merge, rmdup and final merge of bams', parents=[parent_parser], formatter_class=lambda prog: argparse.HelpFormatter(prog,max_help_position=35, width=100), usage='genobox.py bamprocess [options]')
@@ -206,6 +207,7 @@ parser_abgv.add_argument('--se', help='input single end fqfiles', nargs='+', act
 parser_abgv.add_argument('--pe1', help='input paired end fqfiles PE1', nargs='+', action=set_abspath(), default=[])
 parser_abgv.add_argument('--pe2', help='input paired end fqfiles PE2', nargs='+', action=set_abspath(), default=[])
 parser_abgv.add_argument('--fa', help='bwa index to map against', action=set_abspath())
+parser_abgv.add_argument('--N', help='maximum number of alignments to output in the XA tag [3]', default=3, type=int)
 parser_abgv.add_argument('--libfile', help='input parameter file', action=set_abspath())
 parser_abgv.add_argument('--libs', help='if --libfile is not given, library names for each input fq', nargs='+', default=['lib'])
 parser_abgv.add_argument('--mapq', help='mapping quality threshold', type=int, nargs='+', default=[30])
@@ -237,7 +239,7 @@ parser_abgv.add_argument('--denovo', help='perform denovo assembly of unmapped r
 # parse args
 args = parser.parse_args()
 #args = parser.parse_args('alignment --se SRR002081se.recal.fastq SRR002082se.recal.fastq --pe1 SRR002137pe_1.recal.fastq SRR002138pe_1.recal.fastq --pe2 SRR002137pe_2.recal.fastq SRR002138pe_2.recal.fastq --n 16 --sample NA12891 --fa /panvol1/simon/databases/hs_ref37_rCRS/hs_ref_GRCh37_rCRS.fa'.split(' '))
-#args = parser.parse_args('alignment --se Kleb-10-213361_2_1_sequence.trim.fq --fa kleb_pneu.fa args.sample kleb_10_213361se --n 16'.split(' '))
+#args = parser.parse_args('alignment --se Kleb-10-213361_2_1_sequence.trim.fq --fa kleb_pneu.fa --sample kleb_10_213361se --n 16'.split(' '))
 #args = parser.parse_args('bamprocess --bam alignment/SRR002081se.recal.fastq.bam alignment/SRR002082se.recal.fastq.bam alignment/SRR002137pe_1.recal.fastq.bam alignment/SRR002138pe_1.recal.fastq.bam --mapq 30 --libs libA'.split(' '))
 #args = parser.parse_args('bamprocess --bam alignment/Kleb-10-213361_2_1_sequence.trim.fq.bam --mapq 30 --outbam alignment/kleb_10_213361.flt.sort.rmdup.bam --n 16'.split(' '))
 #args = parser.parse_args('bamstats --bam alignment/kleb_10_213361.flt.sort.rmdup.bam --genome ../kleb_pneu.genome'.split(' '))
