@@ -463,7 +463,29 @@ class Library:
                del self.data[key][element]
       
       self.write(self.data)
+   
+   def getValues(self, tag, column):
+      '''Return values from column with tag as key
+         values are strings, unless there are more than one value associated with key, then it is list of strings'''
+            
+      if column in self.data.keys():
+         pass
+      else:
+         raise IndexError('There is no column \"%s\" in the libfile (%s)' % (column, self.f))
       
+      values = {}
+      for i in range(len(self.data[self.data.keys()[0]])):
+         if values.has_key(self.data[tag][i]):
+            if values.has_key(self.data[tag][i]):
+               if type(values[self.data[tag][i]]) == str:
+                  values[self.data[tag][i]] = [values[self.data[tag][i]]] + [self.data[column][i]]
+               else:
+                  values[self.data[tag][i]] = values[self.data[tag][i]] + [self.data[column][i]]
+         else:
+            values[self.data[tag][i]] = self.data[column][i]
+      
+      return (values)
+   
    def getRG(self, tag):
       '''Return read group from data with tag as key'''
       
@@ -534,4 +556,4 @@ class Library:
          lib2bam[key] = unique(values)
       
       return (bam2lib, lib2bam)
-
+   
