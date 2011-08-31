@@ -79,7 +79,7 @@ def setSystem():
       sys['samtools_svn_home'] = '/panvol1/simon/bin/samtools_svn/'
       sys['samtools_home'] = '/panvol1/simon/bin/samtools-0.1.16/'
       sys['picard_home'] = '/panvol1/simon/bin/picard-tools-1.26/'
-      sys['bedtools_home'] = '/panvol1/simon/bin/BEDTools-2.8.3/'
+      sys['bedtools_home'] = '/panvol1/simon/bin/BEDTools-Version-2.12.0/'
       sys['greengenes_home'] = '/panvol1/simon/databases/greengenes/'
       sys['mothur_home'] = '/panvol1/simon/bin/Mothur-1.11.0/'
       sys['rna_hmm3_home'] = '/panvol1/simon/bin/rna_hmm3/'
