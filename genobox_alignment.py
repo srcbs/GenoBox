@@ -67,7 +67,7 @@ def check_trim(args):
       #return args.trimmed_files     
       
 
-def bwa_se_align(fastqs, fa, fqtypes, qtrim, N, alignpath, library, threads, queue, logger):
+def bwa_se_align(fastqs, fa, fqtypes, qtrim, N, alignpath, library, threads, queue, add_aln, logger):
    '''Start alignment using bwa of fastq reads on index'''
    
    import subprocess
@@ -90,17 +90,18 @@ def bwa_se_align(fastqs, fa, fqtypes, qtrim, N, alignpath, library, threads, que
    #RG = genobox_modules.read_groups_from_libfile('Data', library)
    
    # align
-   cmd = paths['bwa_home'] + 'bwa'
+   cmd = paths['bwa_home'] + 'bwa aln '
    bwa_align = []
    saifiles = []
    for i,fq in enumerate(fastqs):
       f = os.path.split(fq)[1]
       saifile = alignpath + f + '.sai'
       saifiles.append(saifile)
+      if add_aln: cmd = cmd + add_aln
       if fqtypes[i] == 'Illumina':
-         arg = ' aln -I -t %i -q %i %s %s > %s' % (threads, qtrim, fa, fq, saifile)
+         arg = ' -I -t %i -q %i %s %s > %s' % (threads, qtrim, fa, fq, saifile)
       elif fqtypes[i] == 'Sanger':
-         arg = ' aln -t %i -q %i %s %s > %s' % (threads, qtrim, fa, fq, saifile)   
+         arg = ' -t %i -q %i %s %s > %s' % (threads, qtrim, fa, fq, saifile)   
       bwa_align.append(cmd+arg)
    
    # samse
@@ -129,7 +130,7 @@ def bwa_se_align(fastqs, fa, fqtypes, qtrim, N, alignpath, library, threads, que
    return (bwa_samse_moab.ids, bamfiles_dict)
 
 
-def bwa_pe_align(pe1, pe2, fa, fqtypes_pe1, fqtypes_pe2, qtrim, N, alignpath, a, library, threads, queue, logger):
+def bwa_pe_align(pe1, pe2, fa, fqtypes_pe1, fqtypes_pe2, qtrim, N, alignpath, a, library, threads, queue, add_aln, logger):
    '''Start alignment using bwa of paired end fastq reads on index'''
    
    import subprocess
@@ -174,6 +175,8 @@ def bwa_pe_align(pe1, pe2, fa, fqtypes_pe1, fqtypes_pe2, qtrim, N, alignpath, a,
          bwa_cmd = '%sbwa aln -I ' % paths['bwa_home']
       else:
          raise ValueError('fqtype must be Sanger or Illumina')
+      
+      if add_aln: bwa_cmd = bwa_cmd + add_aln
       
       # set filenames
       f1 = os.path.split(pe1[i])[1]
@@ -303,7 +306,7 @@ def start_alignment(args, logger):
       for key,value in PL2data.items():
          if key == 'ILLUMINA' or key == 'IONTORRENT':
             fqtypes_se = map(check_formats_fq, value)
-            (se_align_ids, bamfiles_se) = bwa_se_align(value, args.fa, fqtypes_se, args.qtrim, args.N, 'alignment/', library, args.n, args.queue, logger)
+            (se_align_ids, bamfiles_se) = bwa_se_align(value, args.fa, fqtypes_se, args.qtrim, args.N, 'alignment/', library, args.n, args.queue, args.add_aln, logger)
             semaphore_ids.extend(se_align_ids)
             bamfiles.update(bamfiles_se)
          elif key == 'PACBIO':
@@ -325,7 +328,7 @@ def start_alignment(args, logger):
       fqtypes_pe.extend(fqtypes_pe2)
       
       print "Submitting paired end alignments"
-      (pe_align_ids, bamfiles_pe) = bwa_pe_align(args.pe1, args.pe2, args.fa, fqtypes_pe1, fqtypes_pe2, args.qtrim, args.N, 'alignment/', args.a, library, args.n, args.queue, logger)            
+      (pe_align_ids, bamfiles_pe) = bwa_pe_align(args.pe1, args.pe2, args.fa, fqtypes_pe1, fqtypes_pe2, args.qtrim, args.N, 'alignment/', args.a, library, args.n, args.queue, args.add_aln, logger)            
       semaphore_ids.extend(pe_align_ids)
       bamfiles.update(bamfiles_pe)
    
