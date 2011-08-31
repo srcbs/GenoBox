@@ -31,7 +31,7 @@ def calc_TiTv_ratio(i):
         # pyrimidines: C, T, U
         
         # Transition: C->T, T->C, A->G, G->A
-        # Transversion: C->A, T->A, T->G, C->G
+        # Transversion: C->A, T->A, T->G, C->G, A->C, A->T, G->T, C->A
         if "A" in genotype and "T" in genotype: transversion += 1
         if "C" in genotype and "A" in genotype: transversion += 1 
         if "T" in genotype and "G" in genotype: transversion += 1
