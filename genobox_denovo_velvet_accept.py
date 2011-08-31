@@ -13,11 +13,14 @@ def parse_accept(outpath):
    fh = open('velvet_parse.txt', 'r')
    for line in fh:
       line = line.rstrip()
-      if line.find('Rank') > -1:
+      if line.find('Best assembly') > -1:
          match = reg.findall(line)
          best_assembly = match[0]
-         rm_assemblies = match[1:]
-   
+      if line.find('Rank') > -1:
+         match = reg.findall(line)
+         rm_assemblies = match
+         rm_assemblies.remove(best_assembly)
+         
    calls = []
    # move that assembly to final args.outpath
    cmd = 'mv'

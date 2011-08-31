@@ -114,6 +114,8 @@ def set_kmersizes(args, no_reads=10000, step=4):
    # get average of files and set ksizes from this
    avg = average(avg_lengths)
    ksizes = [str(floor_to_odd(avg/3)), str(floor_to_odd(avg/3*2.5)), '4']
+   # change min ksizes if it is smaller than 15. Memory requirements becomes very large at k < 15
+   if int(ksizes[0]) < 15: ksizes[0] = '15'
    sys.stderr.write('Ksizes set to (min, max, step) %s\n' % ' '.join(ksizes))
    return ksizes
 
@@ -252,6 +254,7 @@ def create_velveth_calls(args):
       if args.shortPaired2: arg = arg + ' -shortPaired2 -%s %s' % (args.shortPaired2[0], args.shortPaired2[1])
       if args.long: arg = arg + ' -long -%s %s' % (args.long[0], ' '.join(args.long[1:]))
       if args.longPaired: arg = arg + ' -longPaired -%s %s' % (args.longPaired[0], args.longPaired[1])
+      if args.add_velveth: arg = arg + ' %s' % args.add_velveth
       call = cmd + arg
       velveth_calls.append(call)
    elif len(args.ksizes) >= 2 and len(args.ksizes) <= 3:
@@ -269,6 +272,7 @@ def create_velveth_calls(args):
          if args.shortPaired2: arg = arg + ' -shortPaired2 -%s %s' % (args.shortPaired2[0], args.shortPaired2[1])
          if args.long: arg = arg + ' -long -%s %s' % (args.long[0], ' '.join(args.long[1:]))
          if args.longPaired: arg = arg + ' -longPaired -%s %s' % (args.longPaired[0], args.longPaired[1])
+         if args.add_velveth: arg = arg + ' %s' % args.add_velveth
          call = cmd + arg
          velveth_calls.append(call)
    else:
@@ -342,7 +346,7 @@ def accept_assembly(args):
    import genobox_modules
    paths = genobox_modules.setSystem()
    
-   call = '%sgenobox_denovo_velvet_accept.py' % paths['genobox_home']
+   call = '%sgenobox_denovo_velvet_accept.py %s' % (paths['genobox_home'], args.outpath)
    return [call]
 
 def clean():
@@ -453,7 +457,7 @@ def start_assembly(args, logger):
    s = Semaphore(velvetclean_moab.ids, home, 'velvet', args.queue, 20, 2*86400)
    s.wait()
    print "--------------------------------------"
-
+   
 
 if __name__ == '__main__':
    # create the parser
