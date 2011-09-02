@@ -645,10 +645,17 @@ def initialize_library(libfile, se=[], pe1=[], pe2=[], sample='sample', mapq=[30
 
 ##################################
 
-def set_filetype(f):
+def set_filetype(f, gz):
    '''Detects filetype from fa, fq and sff input file'''
    
-   inhandle = open(f, "r")
+   import gzip
+   
+   if gz:
+      inhandle = gzip.open(f, 'rb')
+   else:
+      inhandle = open(f, "r")
+   
+   # parse
    line = inhandle.readline()
    if line.startswith(">"):
       out = 'fasta'
@@ -664,15 +671,20 @@ def set_filetype(f):
    
    return out
 
-def set_fqtype(f):
+def set_fqtype(f, gz):
    '''Detects sanger or illumina format from fastq'''
    
    # Open fastq, convert ASCII to number, check if number is above or below certain thresholds to determine format
    
+   import gzip
    from Bio.SeqIO.QualityIO import FastqGeneralIterator
    
+   if gz:
+      inhandle = gzip.open(f, 'rb')
+   else:
+      inhandle = open(f, "r")
+   
    type = 'not determined'
-   inhandle = open(f, 'r')
    for (title, sequence, quality) in FastqGeneralIterator(inhandle):
       qs = map(ord, quality)
       for q in qs:

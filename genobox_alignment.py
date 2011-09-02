@@ -31,17 +31,17 @@ def check_fa(fa):
          break
  
 
-def check_formats_fq(i):
+def check_formats_fq(i, gz):
    '''Checks format of fastq file and returns it'''
    
    import genobox_modules
    
    # check if fastq and if so mode
-   format = genobox_modules.set_filetype(i)
+   format = genobox_modules.set_filetype(i, gz)
    if format != 'fastq':
       raise ValueError('Input must be fastq')
    else:
-      fqtype = genobox_modules.set_fqtype(i)   
+      fqtype = genobox_modules.set_fqtype(i, gz)   
    return fqtype
 
 
@@ -294,7 +294,7 @@ def start_alignment(args, logger):
    check_fa(args.fa)
    
    # check for if trimming was performed (abgv only) and set correct files
-   (se_files, pe1_files, pe2_files) = check_trim(args)
+   #(se_files, pe1_files, pe2_files) = check_trim(args)
    
    # start single end alignments
    if args.se:
@@ -304,13 +304,17 @@ def start_alignment(args, logger):
       
       print "Submitting single end alignments"
       for key,value in PL2data.items():
-         if key == 'ILLUMINA' or key == 'IONTORRENT':
-            fqtypes_se = map(check_formats_fq, value)
+         if key == 'ILLUMINA' or key == 'IONTORRENT' or key == 'HELICOS':
+            fqtypes_se = []
+            for fq in value: fqtypes_se.append(check_formats_fq(fq, args.gz))
             (se_align_ids, bamfiles_se) = bwa_se_align(value, args.fa, fqtypes_se, args.qtrim, args.N, 'alignment/', library, args.n, args.queue, args.add_aln, logger)
             semaphore_ids.extend(se_align_ids)
             bamfiles.update(bamfiles_se)
          elif key == 'PACBIO':
-            fqtypes_se = map(check_formats_fq, value)
+            fqtypes_se = []
+            for fq in value:
+               fqtypes_se.append(check_formats_fq(fq, args.gz))
+            #fqtypes_se = map(check_formats_fq, value, args.gz)
             (se_align_ids, bamfiles_se) = bwasw_pacbio(value, args.fa, fqtypes_se, 'alignment/', library, args.n, args.queue, logger)
             semaphore_ids.extend(se_align_ids)
             bamfiles.update(bamfiles_se)
@@ -319,13 +323,12 @@ def start_alignment(args, logger):
    if args.pe1:
       if len(args.pe1) != len(args.pe2):
          raise ValueError('Same number of files must be given to --pe1 and --pe2')
-            
+      
       # set fqtypes
-      fqtypes_pe = []
-      fqtypes_pe1 = map(check_formats_fq, args.pe1)
-      fqtypes_pe2 = map(check_formats_fq, args.pe2)
-      fqtypes_pe.extend(fqtypes_pe1)
-      fqtypes_pe.extend(fqtypes_pe2)
+      fqtypes_pe1 = []
+      fqtypes_pe2 = []
+      for fq in args.pe1: fqtypes_pe1.append(check_formats_fq(fq, args.gz))
+      for fq in args.pe2: fqtypes_pe2.append(check_formats_fq(fq, args.gz))
       
       print "Submitting paired end alignments"
       (pe_align_ids, bamfiles_pe) = bwa_pe_align(args.pe1, args.pe2, args.fa, fqtypes_pe1, fqtypes_pe2, args.qtrim, args.N, 'alignment/', args.a, library, args.n, args.queue, args.add_aln, logger)            

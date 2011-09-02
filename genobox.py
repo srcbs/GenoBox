@@ -88,7 +88,7 @@ def required_nargs_abspath(min,max):
 
 
 parser = argparse.ArgumentParser(prog='genobox.py',
-                                 formatter_class=lambda prog: argparse.HelpFormatter(prog,max_help_position=25),
+                                 formatter_class=lambda prog: argparse.HelpFormatter(prog,max_help_position=25, width=140),
                                  description='''Genobox is a toolbox for mapping and genotyping using Illumina read data''', 
                                  usage='%(prog)s module [options]')
 
@@ -97,6 +97,7 @@ parent_parser = argparse.ArgumentParser(add_help=False)
 parent_parser.add_argument('--sample', help='name of run and output directory', default=None)
 parent_parser.add_argument('--n', help='number of threads for parallel run [4]', default=4, type=int)
 parent_parser.add_argument('--m', help='memory needed for high-memory jobs [7gb]', default='7gb')
+parent_parser.add_argument('--gz', help='input files are gzipped', default=False, action='store_true')
 parent_parser.add_argument('--queue', help='queue to submit jobs to (idle, cbs, cpr, cge, urgent) [cbs]', default='cbs')
 parent_parser.add_argument('--log', help='log level [INFO]', default='info')
 
@@ -104,7 +105,7 @@ parent_parser.add_argument('--log', help='log level [INFO]', default='info')
 subparsers = parser.add_subparsers(dest='module')
 
 # trim
-parser_trim = subparsers.add_parser('trim', help='Trim and filter single or paired end reads', parents=[parent_parser], formatter_class=lambda prog: argparse.HelpFormatter(prog,max_help_position=35, width=100), usage='genobox.py trim [options]')
+parser_trim = subparsers.add_parser('trim', help='Trim and filter single or paired end reads', parents=[parent_parser], formatter_class=lambda prog: argparse.HelpFormatter(prog,max_help_position=35, width=140), usage='genobox.py trim [options]')
 parser_trim.add_argument('--se', help='input single end fqfiles', nargs='+', action=set_abspath(), default=[])
 parser_trim.add_argument('--pe1', help='input paired end fqfiles PE1', nargs='+', action=set_abspath(), default=[])
 parser_trim.add_argument('--pe2', help='input paired end fqfiles PE2', nargs='+', action=set_abspath(), default=[])
@@ -116,7 +117,7 @@ parser_trim.add_argument('--keep_n', help='do not remove sequences containing N'
 parser_trim.add_argument('--min_adaptor_match', help='minimum length of match to adaptor (0=all of adaptor) [20]', default=20, type=int)
 
 # alignment
-parser_alignment = subparsers.add_parser('alignment', help='Single and paired end alignment using bwa', parents=[parent_parser], formatter_class=lambda prog: argparse.HelpFormatter(prog,max_help_position=35, width=100), usage='genobox.py alignment [options]')
+parser_alignment = subparsers.add_parser('alignment', help='Single and paired end alignment using bwa', parents=[parent_parser], formatter_class=lambda prog: argparse.HelpFormatter(prog,max_help_position=35, width=140), usage='genobox.py alignment [options]')
 parser_alignment.add_argument('--se', help='input single end fqfiles', nargs='+', action=set_abspath(), default=[])
 parser_alignment.add_argument('--pe1', help='input paired end fqfiles PE1', nargs='+', action=set_abspath(), default=[])
 parser_alignment.add_argument('--pe2', help='input paired end fqfiles PE2', nargs='+', action=set_abspath(), default=[])
@@ -130,7 +131,7 @@ parser_alignment.add_argument('--N', help='maximum number of alignments to outpu
 parser_alignment.add_argument('--add_aln', help='additional parameters to bwa aln', default=None)
 
 # bam process
-parser_bamprocess = subparsers.add_parser('bamprocess', help='Sort, filter, merge, rmdup and final merge of bams', parents=[parent_parser], formatter_class=lambda prog: argparse.HelpFormatter(prog,max_help_position=35, width=100), usage='genobox.py bamprocess [options]')
+parser_bamprocess = subparsers.add_parser('bamprocess', help='Sort, filter, merge, rmdup and final merge of bams', parents=[parent_parser], formatter_class=lambda prog: argparse.HelpFormatter(prog,max_help_position=35, width=140), usage='genobox.py bamprocess [options]')
 parser_bamprocess.add_argument('--libfile', help='input parameter file', action=set_abspath())
 parser_bamprocess.add_argument('--bam', help='input bam-files', nargs='+', action=set_abspath())
 parser_bamprocess.add_argument('--mapq', help='mapping quality threshold', type=int, nargs='+', default=[30])
@@ -139,7 +140,7 @@ parser_bamprocess.add_argument('--tmpdir', help='temporary dir for rmdup [/panvo
 parser_bamprocess.add_argument('--outbam', help='output file [alignment/final.flt.sort.rmdup.bam]', default='alignment/final.flt.sort.rmdup.bam')
 
 # bam stats
-parser_bamstats = subparsers.add_parser('bamstats', help='Statistics of alignment', parents=[parent_parser], formatter_class=lambda prog: argparse.HelpFormatter(prog,max_help_position=35, width=100), usage='genobox.py bamstats [options]')
+parser_bamstats = subparsers.add_parser('bamstats', help='Statistics of alignment', parents=[parent_parser], formatter_class=lambda prog: argparse.HelpFormatter(prog,max_help_position=35, width=140), usage='genobox.py bamstats [options]')
 parser_bamstats.add_argument('--bam', help='input bam-file', action=set_abspath())
 parser_bamstats.add_argument('--genome', help='file containing genome to analyse, format: chrom\tchrom_len\tchrom_short_name\tploidy\tmin_depth\tmax_depth\n', default=None, action=set_abspath())
 
@@ -153,7 +154,7 @@ parser_genotyping.add_argument('--pp', help='posterior probability cutoff [0.001
 parser_genotyping.add_argument('--o', help='output bcffile [genotyping/snpcalls.bcf]', default='genotyping/snpcalls.bcf')
 
 # vcffilter
-parser_vcffilter = subparsers.add_parser('vcffilter', help='Filter variant genotyping (vcf)', parents=[parent_parser], formatter_class=lambda prog: argparse.HelpFormatter(prog,max_help_position=35, width=100), usage='genobox.py vcffilter [options]')
+parser_vcffilter = subparsers.add_parser('vcffilter', help='Filter variant genotyping (vcf)', parents=[parent_parser], formatter_class=lambda prog: argparse.HelpFormatter(prog,max_help_position=35, width=140), usage='genobox.py vcffilter [options]')
 parser_vcffilter.add_argument('--bcf', help='input bcf var file', action=set_abspath())
 parser_vcffilter.add_argument('--genome', help='file containing genome to analyse, format: chrom\tchrom_len\tchrom_short_name\tploidy\tmin_depth\tmax_depth\n', default=None, action=set_abspath())
 parser_vcffilter.add_argument('--caller', help='samtools or gatk [samtools]', default='samtools')
@@ -165,7 +166,7 @@ parser_vcffilter.add_argument('--prune', help='distance (nt) to prune within [0]
 parser_vcffilter.add_argument('--o', help='output vcf.gz [genotyping/snpcalls.vcf.gz]', default='genotyping/snpcalls.vcf.gz')
 
 # dbsnp
-parser_dbsnp = subparsers.add_parser('dbsnp', help='Annotate vcf file with dbSNP information', parents=[parent_parser], formatter_class=lambda prog: argparse.HelpFormatter(prog,max_help_position=35, width=100), usage='genobox.py dbsnp [options]')
+parser_dbsnp = subparsers.add_parser('dbsnp', help='Annotate vcf file with dbSNP information', parents=[parent_parser], formatter_class=lambda prog: argparse.HelpFormatter(prog,max_help_position=35, width=140), usage='genobox.py dbsnp [options]')
 parser_dbsnp.add_argument('--vcf', help='input vcf or vcf.gz file', action=set_abspath())
 parser_dbsnp.add_argument('--ex', help='exhange chromosome names using file [None]', default=None, action=set_abspath())
 parser_dbsnp.add_argument('--dbsnp', help='dbsnp file to use (vcf.gz format)', default=None, action=set_abspath())
@@ -201,9 +202,26 @@ parser_velvet.add_argument('--ins_length', help='insert size (reads included) [N
 parser_velvet.add_argument('--add_velveth', help='additional parameters to velveth', default=None)
 parser_velvet.add_argument('--add_velvetg', help='additional parameters to velvetg', default=None)
 
+# ab
+parser_ab = subparsers.add_parser('ab', help='Perform alignment and bam-processing', parents=[parent_parser], formatter_class=lambda prog: argparse.HelpFormatter(prog,max_help_position=35, width=140), usage='genobox.py ab [options]')
+parser_ab.add_argument('--se', help='input single end fqfiles', nargs='+', action=set_abspath(), default=[])
+parser_ab.add_argument('--pe1', help='input paired end fqfiles PE1', nargs='+', action=set_abspath(), default=[])
+parser_ab.add_argument('--pe2', help='input paired end fqfiles PE2', nargs='+', action=set_abspath(), default=[])
+parser_ab.add_argument('--fa', help='bwa index to map against', action=set_abspath())
+parser_ab.add_argument('--libfile', help='input parameter file', action=set_abspath())
+parser_ab.add_argument('--libs', help='if --libfile is not given, library names for each input fq', nargs='+', default=['lib'])
+parser_ab.add_argument('--mapq', help='if --libfile is not given, mapping quality threshold', type=int, nargs='+', default=[30])
+parser_ab.add_argument('--pl', help='if --libfile is not given, platform for each input fq (order: se, pe1, pe2)', nargs='+', default=['ILLUMINA'], action=required_choices(['CAPILLARY', 'LS454', 'ILLUMINA', 'SOLID', 'HELICOS', 'IONTORRENT', 'PACBIO']))
+parser_ab.add_argument('--a', help='maximum insert size for bwa sampe (-a) [500]', default=500, type=int)
+parser_ab.add_argument('--N', help='maximum number of alignments to output in the XA tag [3]', default=3, type=int)
+parser_ab.add_argument('--add_aln', help='additional parameters to bwa aln', default=None)
+parser_ab.add_argument('--tmpdir', help='temporary dir for rmdup [/panvol1/simon/tmp/]', default='/panvol1/simon/tmp/', action=set_abspath())
+parser_ab.add_argument('--qtrim', help='quality threshold to trim 3\'', default=0, type=int, action=required_interval(0,1000))
+parser_ab.add_argument('--outbam', help='output file [alignment/final.flt.sort.rmdup.bam]', default='alignment/final.flt.sort.rmdup.bam')
+
 # abgv
-parser_abgv = subparsers.add_parser('abgv', help='Perform alignment, bam-processing, genotyping and filtering', parents=[parent_parser], formatter_class=lambda prog: argparse.HelpFormatter(prog,max_help_position=35, width=100), usage='genobox.py abgv [options]')
-parser_abgv.add_argument('--no_trim', help='add if reads are already trimmed', default=False, action='store_true')
+parser_abgv = subparsers.add_parser('abgv', help='Perform alignment, bam-processing, genotyping and filtering', parents=[parent_parser], formatter_class=lambda prog: argparse.HelpFormatter(prog,max_help_position=35, width=140), usage='genobox.py abgv [options]')
+#parser_abgv.add_argument('--no_trim', help='add if reads are already trimmed', default=False, action='store_true')
 parser_abgv.add_argument('--se', help='input single end fqfiles', nargs='+', action=set_abspath(), default=[])
 parser_abgv.add_argument('--pe1', help='input paired end fqfiles PE1', nargs='+', action=set_abspath(), default=[])
 parser_abgv.add_argument('--pe2', help='input paired end fqfiles PE2', nargs='+', action=set_abspath(), default=[])
@@ -256,6 +274,8 @@ args = parser.parse_args()
 #args = parser.parse_args('abgv --pe1 SRR002138pe_1.recal.fastq --pe2 SRR002138pe_2.recal.fastq --sample NA12891 --fa /panvol1/simon/databases/hs_ref37_rCRS/hs_ref_GRCh37_all.fa --mapq 30 30 --libs A A --pl ILLUMINA ILLUMINA'.split())
 #args = parser.parse_args('alignment --se SRR075153.fastq SRR075154.fastq --sample Vcholerae_C6 --fa /panvol1/simon/databases/bacteria/vibrio_cholerae_O1_N16961.fa --libfile lib.C6.txt.2'.split())
 #args = parser.parse_args('abgv --no_trim --se /panvol1/simon/projects/cge/haiti/data/ebi/SRP004712/SRR075153.fastq.trim.fq /panvol1/simon/projects/cge/haiti/data/ebi/SRP004712/SRR075154.fastq.trim.fq --sample Vcholerae_C6 --fa /panvol1/simon/databases/bacteria/vibrio_cholerae_O1_N16961.fa --genome /panvol1/simon/databases/bacteria/vibrio_cholerae_O1_N16961.genome --libfile libs.C6.txt.3'.split())
+#args = parser.parse_args('ab --se /panvol1/simon/projects/cge/test/1000G/tmp_se.fastq.g --pe1 /panvol1/simon/projects/cge/test/1000G/tmp_pe_1.fastq.gz --pe2 /panvol1/simon/projects/cge/test/1000G/tmp_pe_2.fastq.gz --fa /panvol1/simon/databases/hs_ref37_gatk/human_g1k_v37.fasta --libfile libs.tmp.txt --sample tmp_testing --gz'.split())
+
 
 # If working dir is given, create and move to working directory else run where program is invoked
 if args.sample:
@@ -312,6 +332,10 @@ elif args.module == 'bcf2ref':
    from genobox_bcf2ref import *
    start_bcf2ref(args.bcf, args.genome, args.Q, args.ex, args.dbsnp, args.rmsk, args.indels, args.o, args.queue, args.sample, logger)
 
+elif args.module == 'ab':
+   from genobox_ab import *
+   start_ab(args, logger)
+   
 elif args.module == 'abgv':
    from genobox_abgv import *
    start_abgv(args, logger)
