@@ -99,6 +99,7 @@ parent_parser.add_argument('--n', help='number of threads for parallel run [4]',
 parent_parser.add_argument('--m', help='memory needed for high-memory jobs [7gb]', default='7gb')
 parent_parser.add_argument('--gz', help='input files are gzipped', default=False, action='store_true')
 parent_parser.add_argument('--queue', help='queue to submit jobs to (idle, cbs, cpr, cge, urgent) [cbs]', default='cbs')
+parent_parser.add_argument('--partition', help='partition to run on (ALL, cge-cluster, uv) [ALL]', default='ALL')
 parent_parser.add_argument('--log', help='log level [INFO]', default='info')
 
 # create subparsers
@@ -112,7 +113,7 @@ parser_trim.add_argument('--pe2', help='input paired end fqfiles PE2', nargs='+'
 parser_trim.add_argument('--min_length', help='minimum length of a read to keep pairs [25]', type=int, default=25)
 parser_trim.add_argument('--min_baseq', help='chomp bases with quality less than [20]', default=20, type=int)
 parser_trim.add_argument('--min_avgq', help='minimum average quality of read [20]', default=20, type=int)
-parser_trim.add_argument('--adaptors', help='adaptor sequence to clip [Illumina adaptors]', nargs='+', action='append', default=['GATCGGAAGAGCGGTTCAGCAGGAATGCCGAG', 'ACACTCTTTCCCTACACGACGCTCTTCCGATCT', 'AATGATACGGCGACCACCGAGATCTACACTCTTTCCCTACACGACGCTCTTCCGATCT', 'CAAGCAGAAGACGGCATACGAGATCGGTCTCGGCATTCCTGCTGAACCGCTCTTCCGATCT', 'CGGTCTCGGCATTCCTGCTGAACCGCTCTTCCGATCT', 'ACACTCTTTCCCTACACGACGCTCTTCCGATCT'])
+parser_trim.add_argument('--adaptors', help='adaptor sequence to clip [Illumina adaptors]', nargs='+', default=['GATCGGAAGAGCGGTTCAGCAGGAATGCCGAG', 'ACACTCTTTCCCTACACGACGCTCTTCCGATCT', 'AATGATACGGCGACCACCGAGATCTACACTCTTTCCCTACACGACGCTCTTCCGATCT', 'CAAGCAGAAGACGGCATACGAGATCGGTCTCGGCATTCCTGCTGAACCGCTCTTCCGATCT', 'CGGTCTCGGCATTCCTGCTGAACCGCTCTTCCGATCT', 'ACACTCTTTCCCTACACGACGCTCTTCCGATCT'])
 parser_trim.add_argument('--keep_n', help='do not remove sequences containing N', default=False, action='store_true')
 parser_trim.add_argument('--min_adaptor_match', help='minimum length of match to adaptor (0=all of adaptor) [20]', default=20, type=int)
 
@@ -269,8 +270,11 @@ args = parser.parse_args()
 #args = parser.parse_args('abgv --no_trim --se /panvol1/simon/projects/cge/haiti/data/ebi/SRP004712/SRR075153.fastq.trim.fq /panvol1/simon/projects/cge/haiti/data/ebi/SRP004712/SRR075154.fastq.trim.fq --sample Vcholerae_C6 --fa /panvol1/simon/databases/bacteria/vibrio_cholerae_O1_N16961.fa --genome /panvol1/simon/databases/bacteria/vibrio_cholerae_O1_N16961.genome --libfile libs.C6.txt.3'.split())
 #args = parser.parse_args('ab --se /panvol1/simon/projects/cge/test/1000G/tmp_se.fastq.g --pe1 /panvol1/simon/projects/cge/test/1000G/tmp_pe_1.fastq.gz --pe2 /panvol1/simon/projects/cge/test/1000G/tmp_pe_2.fastq.gz --fa /panvol1/simon/databases/hs_ref37_gatk/human_g1k_v37.fasta --libfile libs.tmp.txt --sample tmp_testing --gz'.split())
 
+#args = parser.parse_args('trim --pe1 giantSquid01A_170bp.fq  --pe2 giantSquid01B_170bp.fq --min_length 60 --min_baseq 20 --min_avgq 20 --adaptors GATCGGAAGAGCGTCGTGTAGGGAAAGAGTGT GATCGGAAGAGCGGTTCAGCAGGAATGCCGAG ACACTCTTTCCCTACACGACGCTCTTCCGATC CTCGGCATTCCTGCTGAACCGCTCTTCCGATC'.split())
+
 
 # If working dir is given, create and move to working directory else run where program is invoked
+
 if args.sample:
    if not os.path.exists(args.sample):
       os.makedirs(args.sample)
@@ -303,27 +307,27 @@ if args.module == 'alignment':
 
 elif args.module == 'bamprocess':
    from genobox_bamprocess import *
-   final_bam = start_bamprocess(args.libfile, args.bam, args.mapq, args.libs, args.tmpdir, args.queue, args.outbam, args.sample, logger)
+   final_bam = start_bamprocess(args.libfile, args.bam, args.mapq, args.libs, args.tmpdir, args.queue, args.outbam, args.sample, args.partition, logger)
 
 elif args.module == 'bamstats':
    from genobox_bamstats import *
-   start_bamstats(args, args.bam, logger)
+   start_bamstats(args, args.bam, args.partition, logger)
 
 elif args.module == 'genotyping':
    from genobox_genotyping import *
-   final_bcf = start_genotyping(args.bam, args.genome, args.fa, args.prior, args.pp, args.queue, args.o, args.sample, logger)
+   final_bcf = start_genotyping(args.bam, args.genome, args.fa, args.prior, args.pp, args.queue, args.o, args.sample, args.partition, logger)
 
 elif args.module == 'vcffilter':
    from genobox_vcffilter import *
-   final_vcf = start_vcffilter(args.bcf, args.genome, args.caller, args.Q, args.ex, args.rmsk, args.ab, args.prune, args.o, args.queue, args.sample, logger)
+   final_vcf = start_vcffilter(args.bcf, args.genome, args.caller, args.Q, args.ex, args.rmsk, args.ab, args.prune, args.o, args.queue, args.sample, args.partition, logger)
 
 elif args.module == 'dbsnp':
    from genobox_dbsnp import *
-   start_dbsnp(args.vcf, args.ex, args.dbsnp, args.o, args.queue, logger)
+   start_dbsnp(args.vcf, args.ex, args.dbsnp, args.o, args.queue, args.partition, logger)
 
 elif args.module == 'bcf2ref':
    from genobox_bcf2ref import *
-   start_bcf2ref(args.bcf, args.genome, args.Q, args.ex, args.dbsnp, args.rmsk, args.indels, args.o, args.queue, args.sample, logger)
+   start_bcf2ref(args.bcf, args.genome, args.Q, args.ex, args.dbsnp, args.rmsk, args.indels, args.o, args.queue, args.sample, args.partition, logger)
 
 elif args.module == 'ab':
    from genobox_ab import *

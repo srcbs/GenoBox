@@ -67,7 +67,7 @@ def check_trim(args):
       #return args.trimmed_files     
       
 
-def bwa_se_align(fastqs, fa, fqtypes, qtrim, N, alignpath, library, threads, queue, add_aln, logger):
+def bwa_se_align(fastqs, fa, fqtypes, qtrim, N, alignpath, library, threads, queue, add_aln, partition, logger):
    '''Start alignment using bwa of fastq reads on index'''
    
    import subprocess
@@ -119,8 +119,8 @@ def bwa_se_align(fastqs, fa, fqtypes, qtrim, N, alignpath, library, threads, que
    
    # submit jobs
    # create moab instance for the align_calls and dispatch to queue
-   bwa_align_moab = Moab(bwa_align, logfile=logger, runname='run_genobox_bwaalign', queue=queue, cpu=cpuB)
-   bwa_samse_moab = Moab(bwa_samse, logfile=logger, runname='run_genobox_bwasamse', queue=queue, cpu=cpuA, depend=True, depend_type='one2one', depend_val=[1], depend_ids=bwa_align_moab.ids)
+   bwa_align_moab = Moab(bwa_align, logfile=logger, runname='run_genobox_bwaalign', queue=queue, cpu=cpuB, partition=partition)
+   bwa_samse_moab = Moab(bwa_samse, logfile=logger, runname='run_genobox_bwasamse', queue=queue, cpu=cpuA, depend=True, depend_type='one2one', depend_val=[1], depend_ids=bwa_align_moab.ids, partition=partition)
       
    # release jobs
    print "Releasing jobs"
@@ -130,7 +130,7 @@ def bwa_se_align(fastqs, fa, fqtypes, qtrim, N, alignpath, library, threads, que
    return (bwa_samse_moab.ids, bamfiles_dict)
 
 
-def bwa_pe_align(pe1, pe2, fa, fqtypes_pe1, fqtypes_pe2, qtrim, N, alignpath, a, library, threads, queue, add_aln, logger):
+def bwa_pe_align(pe1, pe2, fa, fqtypes_pe1, fqtypes_pe2, qtrim, N, alignpath, a, library, threads, queue, add_aln, partition, logger):
    '''Start alignment using bwa of paired end fastq reads on index'''
    
    import subprocess
@@ -200,8 +200,8 @@ def bwa_pe_align(pe1, pe2, fa, fqtypes_pe1, fqtypes_pe2, qtrim, N, alignpath, a,
    
    # submit jobs
    # create moab instance for the align_calls and dispatch to queue
-   bwa_align1_moab = Moab(bwa_align1_calls, logfile=logger, runname='run_genobox_bwaalign1', queue=queue, cpu=cpuB)
-   bwa_align2_moab = Moab(bwa_align2_calls, logfile=logger, runname='run_genobox_bwaalign2', queue=queue, cpu=cpuB)
+   bwa_align1_moab = Moab(bwa_align1_calls, logfile=logger, runname='run_genobox_bwaalign1', queue=queue, cpu=cpuB, partition=partition)
+   bwa_align2_moab = Moab(bwa_align2_calls, logfile=logger, runname='run_genobox_bwaalign2', queue=queue, cpu=cpuB, partition=partition)
    
    # set jobids in the correct way
    bwa_alignids = []
@@ -210,7 +210,7 @@ def bwa_pe_align(pe1, pe2, fa, fqtypes_pe1, fqtypes_pe2, qtrim, N, alignpath, a,
       bwa_alignids.append(bwa_align2_moab.ids[i])
    
    # submit sampe
-   bwa_sampe_moab = Moab(bwa_sampe_calls, logfile=logger, runname='run_genobox_bwasampe', queue=queue, cpu=cpuA, depend=True, depend_type='conc', depend_val=[2], depend_ids=bwa_alignids)
+   bwa_sampe_moab = Moab(bwa_sampe_calls, logfile=logger, runname='run_genobox_bwasampe', queue=queue, cpu=cpuA, depend=True, depend_type='conc', depend_val=[2], depend_ids=bwa_alignids, partition=partition)
    
    # release jobs
    print "Releasing jobs"
@@ -221,7 +221,7 @@ def bwa_pe_align(pe1, pe2, fa, fqtypes_pe1, fqtypes_pe2, qtrim, N, alignpath, a,
    return (bwa_sampe_moab.ids, bamfiles_dict)
 
 
-def bwasw_pacbio(fastqs, fa, fqtypes, alignpath, library, threads, queue, logger):
+def bwasw_pacbio(fastqs, fa, fqtypes, alignpath, library, threads, queue, partition, logger):
    '''Start alignment of fastq files using BWA-SW Pacific Biosciences data'''
    
    import subprocess
@@ -257,7 +257,7 @@ def bwasw_pacbio(fastqs, fa, fqtypes, alignpath, library, threads, queue, logger
    
    # submit jobs
    # create moab instance for the align_calls and dispatch to queue
-   bwa_align_moab = Moab(bwa_align, logfile=logger, runname='run_genobox_bwaalign', queue=queue, cpu=cpuB)
+   bwa_align_moab = Moab(bwa_align, logfile=logger, runname='run_genobox_bwaalign', queue=queue, cpu=cpuB, partition=partition)
    
    # release jobs
    print "Releasing jobs"
@@ -288,7 +288,7 @@ def start_alignment(args, logger):
    if hasattr(args, 'mapq'):
       library = genobox_modules.initialize_library(args.libfile, args.se, args.pe1, args.pe2, args.sample, args.mapq, args.libs, args.pl)
    else:
-      library = genobox_modules.initialize_library(args.libfile, args.se, args.pe1, args.pe2)
+      library = genobox_modules.initialize_library(args.libfile, args.se, args.pe1, args.pe2, args.sample, [30], args.libs, args.pl)
    
    # check for fa
    check_fa(args.fa)
@@ -307,7 +307,7 @@ def start_alignment(args, logger):
          if key == 'ILLUMINA' or key == 'IONTORRENT' or key == 'HELICOS':
             fqtypes_se = []
             for fq in value: fqtypes_se.append(check_formats_fq(fq, args.gz))
-            (se_align_ids, bamfiles_se) = bwa_se_align(value, args.fa, fqtypes_se, args.qtrim, args.N, 'alignment/', library, args.n, args.queue, args.add_aln, logger)
+            (se_align_ids, bamfiles_se) = bwa_se_align(value, args.fa, fqtypes_se, args.qtrim, args.N, 'alignment/', library, args.n, args.queue, args.add_aln, args.partition, logger)
             semaphore_ids.extend(se_align_ids)
             bamfiles.update(bamfiles_se)
          elif key == 'PACBIO':
@@ -315,7 +315,7 @@ def start_alignment(args, logger):
             for fq in value:
                fqtypes_se.append(check_formats_fq(fq, args.gz))
             #fqtypes_se = map(check_formats_fq, value, args.gz)
-            (se_align_ids, bamfiles_se) = bwasw_pacbio(value, args.fa, fqtypes_se, 'alignment/', library, args.n, args.queue, logger)
+            (se_align_ids, bamfiles_se) = bwasw_pacbio(value, args.fa, fqtypes_se, 'alignment/', library, args.n, args.queue, args.partition, logger)
             semaphore_ids.extend(se_align_ids)
             bamfiles.update(bamfiles_se)
    
@@ -331,7 +331,7 @@ def start_alignment(args, logger):
       for fq in args.pe2: fqtypes_pe2.append(check_formats_fq(fq, args.gz))
       
       print "Submitting paired end alignments"
-      (pe_align_ids, bamfiles_pe) = bwa_pe_align(args.pe1, args.pe2, args.fa, fqtypes_pe1, fqtypes_pe2, args.qtrim, args.N, 'alignment/', args.a, library, args.n, args.queue, args.add_aln, logger)            
+      (pe_align_ids, bamfiles_pe) = bwa_pe_align(args.pe1, args.pe2, args.fa, fqtypes_pe1, fqtypes_pe2, args.qtrim, args.N, 'alignment/', args.a, library, args.n, args.queue, args.add_aln, args.partition, logger)            
       semaphore_ids.extend(pe_align_ids)
       bamfiles.update(bamfiles_pe)
    

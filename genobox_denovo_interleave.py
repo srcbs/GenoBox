@@ -67,9 +67,10 @@ def interleave(pe1, pe2, out, format, gzip):
 
 if __name__ == '__main__':
 
-   parser = argparse.ArgumentParser(description='''
-      Mix reads from two pe-files and create an interleaved zipped file
-      ''')
+   parser = argparse.ArgumentParser(prog='genobox_trim_h.py',
+                                 formatter_class=lambda prog: argparse.HelpFormatter(prog,max_help_position=25, width=140),
+                                 description='''Mix reads from two pe-files and create an interleaved zipped file''', 
+                                 usage='%(prog)s [options]')
    
    # add the arguments
    parser.add_argument('i', help='paired end files', nargs=2)

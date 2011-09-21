@@ -52,7 +52,7 @@ def python_avgdepth(bam):
    call = 'python2.7 ' + paths['genobox_home'] + 'genobox_bam2avgdepth.py %s > stats/%s.avgdepth' % (bam, bamf)
    return [call]
    
-def start_bamstats(args, bam, logger, wait=True):
+def start_bamstats(args, bam, partition, logger, wait=True):
    '''Starts calculation of bam statistics'''
    
    # samtools flagstat
@@ -85,10 +85,10 @@ def start_bamstats(args, bam, logger, wait=True):
    
    # submit jobs
    print "Submitting jobs"
-   flagstat_moab = Moab(flagstat_calls, logfile=logger, runname='run_genobox_flagstat', queue=args.queue, cpu=cpuC)
-   coverage_moab = Moab(coverage_calls, logfile=logger, runname='run_genobox_coverage', queue=args.queue, cpu=cpuC)
-   plotcoverage_moab = Moab(plotcoverage_calls, logfile=logger, runname='run_genobox_plotcoverage', queue=args.queue, cpu=cpuA, depend=True, depend_type='one2one', depend_val=[1], depend_ids=coverage_moab.ids)
-   avgdepth_moab = Moab(avgdepth_calls, logfile=logger, runname='run_genobox_avgdepth', queue=args.queue, cpu=cpuE)
+   flagstat_moab = Moab(flagstat_calls, logfile=logger, runname='run_genobox_flagstat', queue=args.queue, cpu=cpuC, partition=partition)
+   coverage_moab = Moab(coverage_calls, logfile=logger, runname='run_genobox_coverage', queue=args.queue, cpu=cpuC, partition=partition)
+   plotcoverage_moab = Moab(plotcoverage_calls, logfile=logger, runname='run_genobox_plotcoverage', queue=args.queue, cpu=cpuA, depend=True, depend_type='one2one', depend_val=[1], depend_ids=coverage_moab.ids, partition=partition)
+   avgdepth_moab = Moab(avgdepth_calls, logfile=logger, runname='run_genobox_avgdepth', queue=args.queue, cpu=cpuE, partition=partition)
    
    # release jobs
    print "Releasing jobs"

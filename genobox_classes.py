@@ -13,7 +13,7 @@ class Moab:
       Jobs are submitted as hold by default and should be released using Moab.release().
    '''
    
-   def __init__(self, calls, logfile=None, runname='run_test', queue='cbs', cpu='nodes=1:ppn=1,mem=2gb,walltime=43200', depend=False, depend_type='one2one', depend_val=[], hold=True, depend_ids=[], env=None):
+   def __init__(self, calls, logfile=None, runname='run_test', queue='cbs', cpu='nodes=1:ppn=1,mem=2gb,walltime=43200', depend=False, depend_type='one2one', depend_val=[], hold=True, depend_ids=[], env=None, partition='ALL'):
       '''Constructor for Moab class'''
       self.calls = calls
       self.runname = runname
@@ -26,13 +26,14 @@ class Moab:
       self.hold = hold
       self.depend_ids = depend_ids
       self.env = env
+      self.partition = partition
       
       # put jobs in queue upon construction
       self.dispatch()
    
    def __repr__(self):
       '''Return string of attributes'''
-      msg = 'Moab(%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)' % ("["+", ".join(self.calls)+"]", self.logfile, self.runname, self.queue,  self.cpu, str(self.depend), self.depend_type, "["+", ".join(map(str,self.depend_val))+"]", str(self.hold), "["+", ".join(self.depend_ids)+"]", self.env)
+      msg = 'Moab(%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)' % ("["+", ".join(self.calls)+"]", self.logfile, self.runname, self.queue,  self.cpu, str(self.depend), self.depend_type, "["+", ".join(map(str,self.depend_val))+"]", str(self.hold), "["+", ".join(self.depend_ids)+"]", self.env, self.partition)
       return msg
    
    def get_logger(self):
@@ -143,9 +144,9 @@ class Moab:
          if self.env: cmd = cmd + ' -v %s' % self.env
          
          if not self.depend:
-            xmsub = cmd+' -d %s -l %s -O %s -E %s -r y -q %s -N %s -t %s' % (home, self.cpu, stdout, stderr, self.queue, self.runname, call)
+            xmsub = cmd+' -d %s -l %s,partition=%s -O %s -E %s -r y -q %s -N %s -t %s' % (home, self.cpu, self.partition, stdout, stderr, self.queue, self.runname, call)
          else:
-            xmsub = cmd+' -d %s -l %s,depend=%s -O %s -E %s -r y -q %s -N %s -t %s' % (home, self.cpu, depends[i], stdout, stderr, self.queue, self.runname, call)
+            xmsub = cmd+' -d %s -l %s,depend=%s,partition=%s -O %s -E %s -r y -q %s -N %s -t %s' % (home, self.cpu, depends[i], self.partition, stdout, stderr, self.queue, self.runname, call)
          
          time.sleep(0.1)
          if logger: logger.info(xmsub)
@@ -197,9 +198,9 @@ class Moab:
          if self.env: cmd = cmd + ' -v %s' % self.env
          
          if not self.depend:
-            msub = '%s -d %s -l %s -o %s -e %s -q %s -r y -N %s %s' % (cmd, home, self.cpu, stdout, stderr, self.queue, self.runname, filename)
+            msub = '%s -d %s -l %s,partition=%s -o %s -e %s -q %s -r y -N %s %s' % (cmd, home, self.cpu, self.partition, stdout, stderr, self.queue, self.runname, filename)
          else:
-            msub = '%s -d %s -l %s,depend=%s -o %s -e %s -q %s -r y -N %s %s' % (cmd, home, self.cpu, depends[i], stdout, stderr, self.queue, self.runname, filename)
+            msub = '%s -d %s -l %s,depend=%s,partition=%s -o %s -e %s -q %s -r y -N %s %s' % (cmd, home, self.cpu, depends[i], self.partition, stdout, stderr, self.queue, self.runname, filename)
          
          time.sleep(0.1)
          if logger: logger.info(msub)

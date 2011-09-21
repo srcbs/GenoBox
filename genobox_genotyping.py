@@ -94,7 +94,7 @@ def bcf_index(bcf):
    calls.append(cmd+arg)
    return calls
 
-def start_genotyping(bam, chr, fa, prior, pp, queue, o, sample, logger):
+def start_genotyping(bam, chr, fa, prior, pp, queue, o, sample, partition, logger):
    '''Starts genotyping using samtools of input bam file'''
    
    import subprocess
@@ -124,11 +124,11 @@ def start_genotyping(bam, chr, fa, prior, pp, queue, o, sample, logger):
    
    # submit jobs #
    print "Submitting jobs"   
-   bamindex_moab = Moab(bamindex_calls, logfile=logger, runname='run_genobox_bamindex', queue=queue, cpu=cpuC)
-   mpileup_moab = Moab(mpileup_calls, logfile=logger, runname='run_genobox_mpileup', queue=queue, cpu=cpuF, depend=True, depend_type='expand', depend_val=[len(mpileup_calls)], depend_ids=bamindex_moab.ids)
-   bcfcombine_moab = Moab(bcfcombine_calls, logfile=logger, runname='run_genobox_bcfcombine', queue=queue, cpu=cpuC, depend=True, depend_type='conc', depend_val=[len(mpileup_calls)], depend_ids=mpileup_moab.ids)
-   bcfindex_moab = Moab(bcfindex_calls, logfile=logger, runname='run_genobox_bcfindex', queue=queue, cpu=cpuC, depend=True, depend_type='one2one', depend_val=[1], depend_ids=bcfcombine_moab.ids)
-   consensus_moab = Moab(consensus_calls, logfile=logger, runname='run_genobox_consensus', queue=queue, cpu=cpuA, depend=True, depend_type='one2one', depend_val=[1], depend_ids=bcfcombine_moab.ids)
+   bamindex_moab = Moab(bamindex_calls, logfile=logger, runname='run_genobox_bamindex', queue=queue, cpu=cpuC, partition=partition)
+   mpileup_moab = Moab(mpileup_calls, logfile=logger, runname='run_genobox_mpileup', queue=queue, cpu=cpuF, depend=True, depend_type='expand', depend_val=[len(mpileup_calls)], depend_ids=bamindex_moab.ids, partition=partition)
+   bcfcombine_moab = Moab(bcfcombine_calls, logfile=logger, runname='run_genobox_bcfcombine', queue=queue, cpu=cpuC, depend=True, depend_type='conc', depend_val=[len(mpileup_calls)], depend_ids=mpileup_moab.ids, partition=partition)
+   bcfindex_moab = Moab(bcfindex_calls, logfile=logger, runname='run_genobox_bcfindex', queue=queue, cpu=cpuC, depend=True, depend_type='one2one', depend_val=[1], depend_ids=bcfcombine_moab.ids, partition=partition)
+   #consensus_moab = Moab(consensus_calls, logfile=logger, runname='run_genobox_consensus', queue=queue, cpu=cpuA, depend=True, depend_type='one2one', depend_val=[1], depend_ids=bcfcombine_moab.ids, partition=partition)
    
    # release jobs #
    print "Releasing jobs"
@@ -136,7 +136,7 @@ def start_genotyping(bam, chr, fa, prior, pp, queue, o, sample, logger):
    mpileup_moab.release()
    bcfcombine_moab.release()
    bcfindex_moab.release()
-   consensus_moab.release()
+   #consensus_moab.release()
       
    # semaphore (consensus is currently not waited for)
    print "Waiting for jobs to finish ..."

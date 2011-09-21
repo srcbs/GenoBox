@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-def start_vcffilter(bcf, genome, caller, Q, ex, rmsk, ab, prune, o, queue, dir, logger):
+def start_vcffilter(bcf, genome, caller, Q, ex, rmsk, ab, prune, o, queue, dir, partition, logger):
    '''Start variant vcf-filter
    
    Genome file must be given, format is a line for each chromosome:
@@ -43,7 +43,7 @@ def start_vcffilter(bcf, genome, caller, Q, ex, rmsk, ab, prune, o, queue, dir, 
    
    # submit jobs
    print "Submitting jobs"
-   vcffilter_moab = Moab(vcffilter_calls, logfile=logger, runname='run_genobox_vcffilter', queue=queue, cpu=cpuE)
+   vcffilter_moab = Moab(vcffilter_calls, logfile=logger, runname='run_genobox_vcffilter', queue=queue, cpu=cpuE, partition=partition)
    
    # release jobs #
    print "Releasing jobs"

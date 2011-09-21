@@ -11,7 +11,7 @@ def get_genome(chr_file):
       L.append(s)
    return L
 
-def start_bcf2ref(bcf, genome_file, Q, ex, dbsnp, rmsk, indels, o, queue, dir, logger):
+def start_bcf2ref(bcf, genome_file, Q, ex, dbsnp, rmsk, indels, o, queue, dir, partition, logger):
    '''Extract high confidence same-as-reference bases from bcf, options are to:
    
    exchange ids
@@ -62,7 +62,7 @@ def start_bcf2ref(bcf, genome_file, Q, ex, dbsnp, rmsk, indels, o, queue, dir, l
    
    # submit jobs
    print "Submitting jobs"
-   bcf2ref_moab = Moab(bcf2ref_calls, logfile=logger, runname='run_genobox_bcf2ref', queue=queue, cpu=cpuE)
+   bcf2ref_moab = Moab(bcf2ref_calls, logfile=logger, runname='run_genobox_bcf2ref', queue=queue, cpu=cpuE, partition=partition)
    
    # release jobs
    print "Releasing jobs"

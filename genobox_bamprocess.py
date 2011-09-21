@@ -67,7 +67,7 @@ def rmdup(infiles, tmpdir):
    paths = genobox_modules.setSystem()
    calls = []
    outfiles = []
-   java_call = paths['java_home']+'java -jar '
+   java_call = paths['java_home']+'java -Xms4500m -Xmx4500m -jar '
    picard_cmd = paths['picard_home'] + 'MarkDuplicates.jar'
    
    for i,f in enumerate(infiles):
@@ -80,7 +80,7 @@ def rmdup(infiles, tmpdir):
    return (calls, outfiles)
 
 
-def start_bamprocess(library_file, bams, mapq, libs, tmpdir, queue, final_bam, sample, logger):
+def start_bamprocess(library_file, bams, mapq, libs, tmpdir, queue, final_bam, sample, partition, logger):
    '''Starts bam processing of input files'''
    
    import subprocess
@@ -127,10 +127,10 @@ def start_bamprocess(library_file, bams, mapq, libs, tmpdir, queue, final_bam, s
    ## SUBMIT JOBS ##
    
    print "Submitting jobs"
-   filtersort_moab = Moab(filter_sort_calls, logfile=logger, runname='run_genobox_filtersort', queue=queue, cpu=cpuC)
-   mergelib_moab = Moab(merge_lib_calls, logfile=logger, runname='run_genobox_lib_merge', queue=queue, cpu=cpuC, depend=True, depend_type='complex', depend_val=map(len, lib2bam.values()), depend_ids=filtersort_moab.ids)
-   rmdup_moab = Moab(rmdup_calls, logfile=logger, runname='run_genobox_rmdup', cpu=cpuC, depend=True, depend_type='one2one', depend_val=[1], depend_ids=mergelib_moab.ids)
-   mergefinal_moab = Moab(merge_final_call, logfile=logger, runname='run_genobox_final_merge', queue=queue, cpu=cpuC, depend=True, depend_type='conc', depend_val=[len(rmdup_moab.ids)], depend_ids=rmdup_moab.ids)
+   filtersort_moab = Moab(filter_sort_calls, logfile=logger, runname='run_genobox_filtersort', queue=queue, cpu=cpuE, partition=partition)
+   mergelib_moab = Moab(merge_lib_calls, logfile=logger, runname='run_genobox_lib_merge', queue=queue, cpu=cpuC, depend=True, depend_type='complex', depend_val=map(len, lib2bam.values()), depend_ids=filtersort_moab.ids, partition=partition)
+   rmdup_moab = Moab(rmdup_calls, logfile=logger, runname='run_genobox_rmdup', cpu=cpuE, depend=True, depend_type='one2one', depend_val=[1], depend_ids=mergelib_moab.ids, partition=partition)          # NB: If memory should be changed, also change java memory spec in rmdup function
+   mergefinal_moab = Moab(merge_final_call, logfile=logger, runname='run_genobox_final_merge', queue=queue, cpu=cpuC, depend=True, depend_type='conc', depend_val=[len(rmdup_moab.ids)], depend_ids=rmdup_moab.ids, partition=partition)
    
    # release jobs #
    print "Releasing jobs"

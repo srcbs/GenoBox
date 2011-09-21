@@ -31,7 +31,7 @@ def start_ab(args, logger):
    print "Starting alignment"
    (bamfiles, library) = start_alignment(args, logger)
    print "Starting bam processing"
-   final_bam = start_bamprocess(library, genobox_modules.unique(bamfiles.values()), args.mapq, args.libs, args.tmpdir, args.queue, final_bam, args.sample, logger)
+   final_bam = start_bamprocess(library, genobox_modules.unique(bamfiles.values()), args.mapq, args.libs, args.tmpdir, args.queue, final_bam, args.sample, args.partition, logger)
    
    # remove queuing system outfiles
    genobox_modules.rm_files(['run_genobox_*', 'semaphores.*'])

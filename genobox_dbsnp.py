@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-def start_dbsnp(vcf, ex, dbsnp, o, queue, logger):
+def start_dbsnp(vcf, ex, dbsnp, o, queue, partition, logger):
    '''Annotate vcf.gz file with dbSNP,
    exchanging chromsome names to dbSNP version
    sort vcf and the input to dbSNP
@@ -36,7 +36,7 @@ def start_dbsnp(vcf, ex, dbsnp, o, queue, logger):
    
    # submit jobs
    print "Submitting jobs"
-   dbsnp_moab = Moab(dbsnp_calls, logfile=logger, runname='run_genobox_dbsnp', queue=queue, cpu=cpuC)
+   dbsnp_moab = Moab(dbsnp_calls, logfile=logger, runname='run_genobox_dbsnp', queue=queue, cpu=cpuC, partition=partition)
    
    # release jobs #
    print "Releasing jobs"

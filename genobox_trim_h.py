@@ -24,7 +24,7 @@ class FastqTrim:
                 'AATGATACGGCGACCACCGAGATCTACACTCTTTCCCTACACGACGCTCTTCCGATCT', 
                 'CAAGCAGAAGACGGCATACGAGATCGGTCTCGGCATTCCTGCTGAACCGCTCTTCCGATCT', 
                 'CGGTCTCGGCATTCCTGCTGAACCGCTCTTCCGATCT', 
-                'ACACTCTTTCCCTACACGACGCTCTTCCGATCT']):
+                'ACACTCTTTCCCTACACGACGCTCTTCCGATCT'], gz=False):
       self.f = f
       self.o = o
       self.l = l
@@ -35,17 +35,18 @@ class FastqTrim:
       self.a = a
       self.paired = False
       self.interleaved = False
+      self.gz = gz
       
       # set adaptors, readtype, fastq format
       self.adaptors = self.set_adaptors()
       self.set_readtype()
-      self.format = genobox_modules.set_filetype(self.f[0])
+      self.format = genobox_modules.set_filetype(self.f[0], self.gz)
       if self.format == 'fastq':
-         self.fqtype = genobox_modules.set_fqtype(self.f[0])
+         self.fqtype = genobox_modules.set_fqtype(self.f[0], self.gz)
    
    
    def __repr__(self):
-      msg = 'FastqTrim(%s, %s, %i, %i, %i, %s, %i, %s, %s)' % ("["+", ".join(self.f)+"]", "["+", ".join(self.o)+"]", self.l, self.q, self.m, self.keep_n, self.M, self.paired, self.interleaved)
+      msg = 'FastqTrim(%s, %s, %i, %i, %i, %s, %i, %s, %s, %s)' % ("["+", ".join(self.f)+"]", "["+", ".join(self.o)+"]", self.l, self.q, self.m, self.keep_n, self.M, self.paired, self.interleaved, self.gz)
       return msg
    
    def set_readtype(self):
@@ -54,7 +55,12 @@ class FastqTrim:
       def check_interleaved(self):
          '''Check if a file is interleaved paired or single'''
          
-         fh = open(self.f[0], 'r')
+         if self.gz:
+            import gzip
+            fh = gzip.open(self.f[0], 'rb')
+         else:
+            fh = open(self.f[0], 'r')
+         
          count = 0
          ends = []
          for (title, sequence, quality) in FastqGeneralIterator(fh):
@@ -216,8 +222,13 @@ class FastqTrim:
       def write_out(db_common, f, o):
          '''Write out reads'''
          
-         fh = open(f, 'r')
-         out = open(o, 'w')
+         if self.gz:
+            fh = gzip.open(f, 'rb')
+            out = gzip.open(o, 'wb')
+         else:
+            fh = open(f, 'r')
+            out = open(o, 'w')
+         
          written_count = 0
          total_count = 0
          for (title, sequence, quality) in FastqGeneralIterator(fh):
@@ -275,7 +286,18 @@ class FastqTrim:
       db_common.finish()
       del(db_common)
       
-      # open common db
+      ## get headers that are in only one trimmed file ##
+      symdiff = set(db1.keys()).symmetric_difference(set(db2.keys()))
+      
+      dbdiff_fname = 'dbdiff_%s' % rand
+      db_diff = cdb.cdbmake(dbdiff_fname, dbdiff_fname + '.tmp')
+      for h in symdiff:
+         db_diff.add(h, 'T')
+      db_diff.finish()
+      del(db_diff)
+      
+      
+      ## open common db ##
       db_common = cdb.init(dbcommon_fname)
       jobs = []
       p = multiprocessing.Process(target=write_out, args=(db_common, f1, self.o[0]))
@@ -286,20 +308,37 @@ class FastqTrim:
       p.start()
       jobs.append(p)
       
+      ## open single db ##
+      self.single = [self.o[0]+'.single', self.o[1]+'.single']
+      
+      db_diff = cdb.init(dbdiff_fname)
+      p = multiprocessing.Process(target=write_out, args=(db_diff, f1, self.single[0]))
+      p.start()
+      jobs.append(p)
+      
+      p = multiprocessing.Process(target=write_out, args=(db_diff, f2, self.single[1]))
+      p.start()
+      jobs.append(p)
+      
       # wait for jobs to finish
       for job in jobs:
          job.join()
       
-      rm_files([db1_fname, db2_fname, dbcommon_fname, f1, f2])
+      rm_files([db1_fname, db2_fname, dbcommon_fname, dbdiff_fname, f1, f2])
    
    def trim(self, paired=False, interleave=False):
       '''Start trimming of reads'''
       
       def trim_file(self, f, f_out):
          written = 0
-         total = 0      
-         fh_in = open(f, 'r')
-         fh_out = open(f_out, 'w')
+         total = 0
+         if self.gz:
+            import gzip
+            fh_in = gzip.open(f, 'rb')
+            fh_out = gzip.open(f_out, 'wb')            
+         else:
+            fh_in = open(f, 'r')
+            fh_out = open(f_out, 'w')
          for (title, sequence, quality) in FastqGeneralIterator(fh_in):
             total += 1
             (title, sequence, quality) = self.filter_adaptor(title, sequence, quality)
@@ -315,9 +354,14 @@ class FastqTrim:
       
       def trim_interleaved_file(self, f, f_out):
          written = 0
-         total = 0      
-         fh_in = open(f, 'r')
-         fh_out = [open(f_out[0], 'w'), open(f_out[1], 'w')]
+         total = 0  
+         if self.gz:
+            import gzip
+            fh_in = gzip.open(f, 'rb')
+            fh_out = [gzip.open(f_out[0], 'wb'), gzip.open(f_out[1], 'wb')]
+         else:
+            fh_in = open(f, 'r')
+            fh_out = [open(f_out[0], 'w'), open(f_out[1], 'w')]
          for (title, sequence, quality) in FastqGeneralIterator(fh_in):
             (title, sequence, quality) = self.filter_adaptor(title, sequence, quality)
             (title, sequence, quality) = self.trim_qual(title, sequence, quality)
@@ -338,7 +382,6 @@ class FastqTrim:
          f_out = ['tmp0.'+rand, 'tmp1.'+rand]
          
          # check if file is interleaved
-         
          if self.interleaved:
             sys.stderr.write('Trimming paired end interleaved\n')
             trim_interleaved_file(self, self.f[0], f_out)
@@ -365,9 +408,10 @@ class FastqTrim:
 
 if __name__ == '__main__':
       
-   parser = argparse.ArgumentParser(description='''
-      Trim SE or PE files for low q bases, adaptor sequences, Ns
-      ''')
+   parser = argparse.ArgumentParser(prog='genobox_trim_h.py',
+                                 formatter_class=lambda prog: argparse.HelpFormatter(prog,max_help_position=50,width=140),
+                                 description='''Trim SE or PE files for low q bases, adaptor sequences, Ns''', 
+                                 usage='%(prog)s [options]')
    
    # add the arguments
    parser.add_argument('--i', help='input single or paired end files', nargs='+', required=True)
@@ -378,15 +422,16 @@ if __name__ == '__main__':
    parser.add_argument('--keep_n', help='do not remove sequences containing N', default=False, action='store_true')
    parser.add_argument('--min_adaptor_match', help='minimum length of match to adaptor (0=all of adaptor) [20]', default=20, type=int)
    parser.add_argument('--o', help='output files', nargs='+', required=True)
+   parser.add_argument('--gz', help='input files are gzipped [False]', default=False, action='store_true')
    parser.add_argument('--log', help='log level [INFO]', default='info')
    
    args = parser.parse_args()
    #args = parser.parse_args('--i Kleb-10-213361_2.interleaved.fastq --o Kleb-10-213361_2_1.interleaved.fastq.trim.fastq Kleb-10-213361_2_2.interleaved.fastq.trim.fastq'.split())
    #args = parser.parse_args('--i kleb_test_2.fq --l 25 --q 20 --o kleb_test_2.trim.fq'.split())
-   #args = parser.parse_args('--i Kleb-10-213361_2_1_sequence.txt Kleb-10-213361_2_2_sequence.txt --M 15 --o Kleb-10-213361_2_1_sequence.trim.fq Kleb-10-213361_2_2_sequence.trim.fq '.split())
+   #args = parser.parse_args('--i  test_kleb_1.fq  test_kleb_2.fq --min_length 60 --o test_kleb_trim_1.fq test_kleb_trim_2.fq'.split())
    
    # create instance
-   fqtrim = FastqTrim(args.i, args.o, args.min_length, args.min_baseq, args.min_avgq, args.keep_n, args.min_adaptor_match, args.adaptors)
+   fqtrim = FastqTrim(args.i, args.o, args.min_length, args.min_baseq, args.min_avgq, args.keep_n, args.min_adaptor_match, args.adaptors, args.gz)
    # start trimming
    fqtrim.trim()
    

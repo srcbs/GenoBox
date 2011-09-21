@@ -38,6 +38,7 @@ def paired_trim(args):
       arg = ' --i %s %s --min_length %i --min_baseq %i --min_avgq %i --adaptors %s --min_adaptor_match %i --o %s %s' % (args.pe1[i], args.pe2[i], args.min_length,
             args.min_baseq, args.min_avgq, ' '.join(args.adaptors), args.min_adaptor_match, outfile_pe1, outfile_pe2)
       if args.keep_n: arg = arg + ' --keep_n'
+      if args.gz: arg = arg + ' --gz' 
       calls.append(cmd+arg)
    return (calls, outfiles_pe1, outfiles_pe2)
 
