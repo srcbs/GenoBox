@@ -10,8 +10,10 @@ def samFilterSort(i, q, m, o):
    
    paths = genobox_modules.setSystem()
    sam_cmd = paths['samtools_svn_home'] + 'samtools'
-   
-   call = '%s view -u -q %i %s |  %s sort -m %s - %s' % (sam_cmd, q, i, sam_cmd, m, o)
+   if q == 0:
+      call = '%s sort -m %s %s %s' % (sam_cmd, m, i, o)
+   else:
+      call = '%s view -u -q %i %s |  %s sort -m %s - %s' % (sam_cmd, q, i, sam_cmd, m, o)
    logger.info(call)
    subprocess.check_call(call, shell=True)
    
@@ -28,7 +30,7 @@ parser.add_argument('--o', help='prefix output bam')
 parser.add_argument('--log', help='log level [INFO]', default='info')
 
 args = parser.parse_args()
-#args = parser.parse_args('--i  --q 3 --o '.split())
+#args = parser.parse_args('--i test.bam --q 0 --m 5000000 --o test.sort '.split())
 
 # set logging
 logger = logging.getLogger('genobox.py')

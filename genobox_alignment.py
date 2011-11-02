@@ -306,16 +306,22 @@ def start_alignment(args, logger):
       for key,value in PL2data.items():
          if key == 'ILLUMINA' or key == 'IONTORRENT' or key == 'HELICOS':
             fqtypes_se = []
-            for fq in value: fqtypes_se.append(check_formats_fq(fq, args.gz))
-            (se_align_ids, bamfiles_se) = bwa_se_align(value, args.fa, fqtypes_se, args.qtrim, args.N, 'alignment/', library, args.n, args.queue, args.add_aln, args.partition, logger)
+            # filter to only contain single end files
+            toalign = []
+            for v in value:
+               if v in args.se: toalign.append(v)
+            for fq in toalign: fqtypes_se.append(check_formats_fq(fq, args.gz))
+            # submit
+            (se_align_ids, bamfiles_se) = bwa_se_align(toalign, args.fa, fqtypes_se, args.qtrim, args.N, 'alignment/', library, args.n, args.queue, args.add_aln, args.partition, logger)
             semaphore_ids.extend(se_align_ids)
             bamfiles.update(bamfiles_se)
          elif key == 'PACBIO':
+            toalign = []
+            for v in value:
+               if v in args.se: toalign.append(v)
             fqtypes_se = []
-            for fq in value:
-               fqtypes_se.append(check_formats_fq(fq, args.gz))
-            #fqtypes_se = map(check_formats_fq, value, args.gz)
-            (se_align_ids, bamfiles_se) = bwasw_pacbio(value, args.fa, fqtypes_se, 'alignment/', library, args.n, args.queue, args.partition, logger)
+            for fq in toalign: fqtypes_se.append(check_formats_fq(fq, args.gz))
+            (se_align_ids, bamfiles_se) = bwasw_pacbio(toalign, args.fa, fqtypes_se, 'alignment/', library, args.n, args.queue, args.partition, logger)
             semaphore_ids.extend(se_align_ids)
             bamfiles.update(bamfiles_se)
    

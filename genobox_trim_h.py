@@ -9,6 +9,7 @@ import random
 import string
 import cdb
 import multiprocessing
+import gzip
 
 class FastqTrim:
    '''Trim/Filter paired end fastq:
@@ -223,8 +224,8 @@ class FastqTrim:
          '''Write out reads'''
          
          if self.gz:
-            fh = gzip.open(f, 'rb')
-            out = gzip.open(o, 'wb')
+            fh = open(f, 'r')
+            out = gzip.open(o+'.gz', 'wb')
          else:
             fh = open(f, 'r')
             out = open(o, 'w')
@@ -333,12 +334,15 @@ class FastqTrim:
          written = 0
          total = 0
          if self.gz:
-            import gzip
             fh_in = gzip.open(f, 'rb')
-            fh_out = gzip.open(f_out, 'wb')            
+            if self.paired:
+               fh_out = open(f_out, 'w')
+            else:
+               fh_out = gzip.open(f_out+'.gz', 'wb')
          else:
             fh_in = open(f, 'r')
             fh_out = open(f_out, 'w')
+         
          for (title, sequence, quality) in FastqGeneralIterator(fh_in):
             total += 1
             (title, sequence, quality) = self.filter_adaptor(title, sequence, quality)
@@ -356,9 +360,8 @@ class FastqTrim:
          written = 0
          total = 0  
          if self.gz:
-            import gzip
             fh_in = gzip.open(f, 'rb')
-            fh_out = [gzip.open(f_out[0], 'wb'), gzip.open(f_out[1], 'wb')]
+            fh_out = [open(f_out[0], 'w'), open(f_out[1], 'w')]
          else:
             fh_in = open(f, 'r')
             fh_out = [open(f_out[0], 'w'), open(f_out[1], 'w')]
@@ -429,9 +432,14 @@ if __name__ == '__main__':
    #args = parser.parse_args('--i Kleb-10-213361_2.interleaved.fastq --o Kleb-10-213361_2_1.interleaved.fastq.trim.fastq Kleb-10-213361_2_2.interleaved.fastq.trim.fastq'.split())
    #args = parser.parse_args('--i kleb_test_2.fq --l 25 --q 20 --o kleb_test_2.trim.fq'.split())
    #args = parser.parse_args('--i  test_kleb_1.fq  test_kleb_2.fq --min_length 60 --o test_kleb_trim_1.fq test_kleb_trim_2.fq'.split())
+   #args = parser.parse_args('--i /panvol1/simon/projects/cge/test/test_kleb_1.fq.gz --min_length 25 --min_baseq 20 --min_avgq 20 --min_adaptor_match 20 --o trimmed/test_kleb_1.fq.gz.trim.fq --gz'.split())
+   #args = parser.parse_args('--i test_1.fq test_2.fq --min_length 25 --min_baseq 20 --min_avgq 20 --min_adaptor_match 20 --o trimmed/test_1.fq.trim.fq trimmed/test_2.fq.trim.fq'.split())
+   #args = parser.parse_args('--i test_1.fq.gz test_2.fq.gz --min_length 25 --min_baseq 20 --min_avgq 20 --min_adaptor_match 20 --o trimmed/test_1.fq.trim.fq trimmed/test_2.fq.trim.fq --gz'.split())
    
    # create instance
    fqtrim = FastqTrim(args.i, args.o, args.min_length, args.min_baseq, args.min_avgq, args.keep_n, args.min_adaptor_match, args.adaptors, args.gz)
    # start trimming
    fqtrim.trim()
+   
+   
    

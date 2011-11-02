@@ -120,6 +120,7 @@ class Moab:
       import subprocess
       import time
       import os
+      import sys
       
       home = os.getcwd()
       
@@ -148,7 +149,7 @@ class Moab:
          else:
             xmsub = cmd+' -d %s -l %s,depend=%s,partition=%s -O %s -E %s -r y -q %s -N %s -t %s' % (home, self.cpu, depends[i], self.partition, stdout, stderr, self.queue, self.runname, call)
          
-         time.sleep(0.1)
+         time.sleep(3)
          if logger: logger.info(xmsub)
                    
          # submit
@@ -156,9 +157,11 @@ class Moab:
             id = subprocess.check_output(xmsub, shell=True)
             #print id
          except:
-            print 'Job error, waiting 1m'
+            print 'Job error for \"%s\" waiting 1m' % xmsub
             time.sleep(60)
+            sys.stdout.write('Retrying submission...')
             id = subprocess.check_output(xmsub, shell=True)
+            sys.stdout.write(' success - continuing\n')
          ids.append(id.split('\n')[1])
          #print ids
       return(ids)
@@ -171,6 +174,7 @@ class Moab:
       import string
       import time
       import os
+      import sys
       
       home = os.getcwd()
             
@@ -202,16 +206,18 @@ class Moab:
          else:
             msub = '%s -d %s -l %s,depend=%s,partition=%s -o %s -e %s -q %s -r y -N %s %s' % (cmd, home, self.cpu, depends[i], self.partition, stdout, stderr, self.queue, self.runname, filename)
          
-         time.sleep(0.1)
+         time.sleep(3)
          if logger: logger.info(msub)
          # submit
          try:
             id = subprocess.check_output(msub, shell=True)
             #print id
          except:
-            print 'Job error, waiting 1m'
+            print 'Job error for \"%s\" waiting 1m' % msub
             time.sleep(60)
+            sys.stdout.write('Retrying submission...')
             id = subprocess.check_output(msub, shell=True)
+            sys.stdout.write(' success - continuing\n')
          ids.append(id.split('\n')[1])
          
          # remove pbsjob file

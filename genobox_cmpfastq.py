@@ -177,7 +177,7 @@ if __name__ == '__main__':
                                  usage='%(prog)s [options]')
    
    # add the arguments
-   parser.add_argument('--i', help='input paired end files', nargs='+', required=True)
+   parser.add_argument('--i', help='input paired end files', nargs=2, required=True)
    parser.add_argument('--gz', help='input files are gzipped [False]', default=False, action='store_true')
    parser.add_argument('--log', help='log level [INFO]', default='info')
    

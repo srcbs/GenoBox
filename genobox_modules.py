@@ -688,7 +688,8 @@ def set_fqtype(f, gz):
    for (title, sequence, quality) in FastqGeneralIterator(inhandle):
       qs = map(ord, quality)
       for q in qs:
-         if q > 73:
+         #print q
+         if q > 74:
             type = 'Illumina'
             break
          elif q < 59:
