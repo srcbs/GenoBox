@@ -67,7 +67,7 @@ def rmdup(infiles, tmpdir):
    paths = genobox_modules.setSystem()
    calls = []
    outfiles = []
-   java_call = paths['java_home']+'java -Xms4500m -Xmx4500m -jar '
+   java_call = paths['java_home']+'java -XX:ParallelGCThreads=8 -Xms4500m -Xmx4500m -jar '
    picard_cmd = paths['picard_home'] + 'MarkDuplicates.jar'
    
    for i,f in enumerate(infiles):

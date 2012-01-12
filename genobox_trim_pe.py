@@ -181,11 +181,17 @@ def trim_reads(args):
          if read2 == 'Stop': 
             sys.stderr.write('%s, total: %i, paired: %i, single: %i, removed: %i\n' % (args.i[0], total, paired, single1, removed1))
             sys.stderr.write('%s, total: %i, paired: %i, single: %i, removed: %i\n' % (args.i[1], total, paired, single2, removed2))
-            raise StopIteration
+            sys.exit()
          else: raise ValueError('files not equal length')
       
-      total += 1      
-      h1, h2 = (read1.split('\n')[0][:-2], read2.split('\n')[0][:-2])
+      total += 1
+      
+      # check new Illumina header
+      if read1.split('\n')[0].find(' ') > -1:
+         h1, h2 = (read1.split('\n')[0].split(' ')[0], read2.split('\n')[0].split(' ')[0])
+      else:
+         h1, h2 = (read1.split('\n')[0][:-2], read2.split('\n')[0][:-2])
+      
       if read1 == '@None\nNone\n+\nNone\n' and read2 == '@None\nNone\n+\nNone\n': 
          removed1 += 1
          removed2 += 1

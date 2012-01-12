@@ -265,6 +265,50 @@ def bwasw_pacbio(fastqs, fa, fqtypes, alignpath, library, threads, queue, partit
    
    return (bwa_align_moab.ids, bamfiles_dict)
 
+def bwasw_iontorrent(fastqs, fa, fqtypes, alignpath, library, threads, queue, partition, logger):
+   '''Start alignment of fastq files using BWA-SW Iontorrent data'''
+   
+   import subprocess
+   import genobox_modules
+   from genobox_classes import Moab
+   import os
+   paths = genobox_modules.setSystem()
+   home = os.getcwd()
+   
+   # setting cpus
+   cpuA = 'nodes=1:ppn=1,mem=5gb,walltime=172800'
+   cpuC = 'nodes=1:ppn=1,mem=2gb,walltime=172800'
+   if threads != 1:
+      cpuB = 'nodes=1:ppn=%s,mem=5gb,walltime=172800' % threads
+   else:
+      cpuB = cpuA
+   
+   # align
+   cmd = paths['bwa_home'] + 'bwa'
+   bwa_align = []
+   bamfiles = []
+   bamfiles_dict = dict()
+   for i,fq in enumerate(fastqs):
+      f = os.path.split(fq)[1]
+      bamfile = alignpath + f + '.bam'
+      bamfiles.append(bamfile)
+      bamfiles_dict[fq] = bamfile      
+      if fqtypes[i] == 'Illumina':
+         raise ValueError('BWA-SW should not align reads with Illumina Qualities')
+      elif fqtypes[i] == 'Sanger':
+         arg = ' bwasw -t %i %s %s |  %ssamtools view -Sb - > %s' % (threads, fa, fq, paths['samtools_home'], bamfile)
+      bwa_align.append(cmd+arg)
+   
+   # submit jobs
+   # create moab instance for the align_calls and dispatch to queue
+   bwa_align_moab = Moab(bwa_align, logfile=logger, runname='run_genobox_bwaalign', queue=queue, cpu=cpuB, partition=partition)
+   
+   # release jobs
+   print "Releasing jobs"
+   bwa_align_moab.release()
+   
+   return (bwa_align_moab.ids, bamfiles_dict)
+
 
 def start_alignment(args, logger):
    '''Start alignment of fastq files using BWA'''
@@ -304,7 +348,7 @@ def start_alignment(args, logger):
       
       print "Submitting single end alignments"
       for key,value in PL2data.items():
-         if key == 'ILLUMINA' or key == 'IONTORRENT' or key == 'HELICOS':
+         if key == 'ILLUMINA' or key == 'HELICOS':
             fqtypes_se = []
             # filter to only contain single end files
             toalign = []
@@ -322,6 +366,15 @@ def start_alignment(args, logger):
             fqtypes_se = []
             for fq in toalign: fqtypes_se.append(check_formats_fq(fq, args.gz))
             (se_align_ids, bamfiles_se) = bwasw_pacbio(toalign, args.fa, fqtypes_se, 'alignment/', library, args.n, args.queue, args.partition, logger)
+            semaphore_ids.extend(se_align_ids)
+            bamfiles.update(bamfiles_se)
+         elif key == 'IONTORRENT':
+            toalign = []
+            for v in value:
+               if v in args.se: toalign.append(v)
+            fqtypes_se = []
+            for fq in toalign: fqtypes_se.append(check_formats_fq(fq, args.gz))
+            (se_align_ids, bamfiles_se) = bwasw_iontorrent(toalign, args.fa, fqtypes_se, 'alignment/', library, args.n, args.queue, args.partition, logger)
             semaphore_ids.extend(se_align_ids)
             bamfiles.update(bamfiles_se)
    
