@@ -49,7 +49,7 @@ def python_avgdepth(bam):
    # set bam-file sans paths (input is abspath(bam))
    bamf = os.path.split(bam)[1]   
    
-   call = 'python2.7 ' + paths['genobox_home'] + 'genobox_bam2avgdepth.py %s > stats/%s.avgdepth' % (bam, bamf)
+   call = paths['genobox_home'] + 'genobox_bam2avgdepth.py %s > stats/%s.avgdepth' % (bam, bamf)
    return [call]
    
 def start_bamstats(args, bam, partition, logger, wait=True):

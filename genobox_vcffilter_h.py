@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/panvol1/simon/bin/python2.7
 
 from __future__ import division
 
@@ -224,7 +224,7 @@ def write_indels_for_filtering(vcf, ex):
    if not ex or ex == 'None':
       call = '''gzip -dc %s | perl -ne 'if ($_ =~ m/^#/) { print $_ } else { if ($_ =~ INDEL) { print $_ }}' > genotyping/indels_for_filtering.vcf ''' % (vcf)
    else:
-      ex_call = 'python2.7 %sgenobox_exchangeids.py --b %s' % (paths['genobox_home'], ex)
+      ex_call = '%sgenobox_exchangeids.py --b %s' % (paths['genobox_home'], ex)
       call = '''gzip -dc %s | perl -ne 'if ($_ =~ m/^#/) { print $_ } else { if ($_ =~ INDEL) { print $_ }}' | %s > genotyping/indels_for_filtering.vcf ''' % (vcf, ex_call)
    
    logger.info(call)

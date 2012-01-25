@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/panvol1/simon/bin/python2.7
 
 import argparse
 import os
@@ -19,7 +19,7 @@ def vcf_filterAll(bcf, chr_id, d, D, Q, ex, vcf_out_gz):
       bcf_arg = ''' %s ''' % (bcf)
    bcf_call = bcf_cmd + bcf_arg
    
-   vcf_filter_cmd = 'python2.7 ' + paths['genobox_home'] + 'genobox_vcffilterAll.py'
+   vcf_filter_cmd = paths['genobox_home'] + 'genobox_vcffilterAll.py'
    if ex and ex != 'None':
       vcf_filter_arg = ' --d %i --D %i --Q %f --ex %s --refonly' % (d, D, Q, ex)
    else:
@@ -151,7 +151,7 @@ def vcf_filter_indels(vcfgz, chr, indels, rmpos, o):
       paths = genobox_modules.setSystem()
       gzcat_call = '/usr/bin/gunzip -c %s' % vcfgz
       
-      vcf_filter_cmd = 'python2.7 ' + paths['genobox_home'] + 'genobox_vcffilterindels.py'
+      vcf_filter_cmd = paths['genobox_home'] + 'genobox_vcffilterindels.py'
       vcf_filter_arg = ' --indels %s --rmpos %s' % (indels, rmpos)
       vcf_filter_call = vcf_filter_cmd + vcf_filter_arg
       

@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/panvol1/simon/bin/python2.7
 
 def start_dbsnp(vcf, ex, dbsnp, o, queue, partition, logger):
    '''Annotate vcf.gz file with dbSNP,
@@ -30,7 +30,7 @@ def start_dbsnp(vcf, ex, dbsnp, o, queue, partition, logger):
    cpuB = 'nodes=1:ppn=16,mem=10gb,walltime=172800'
    
    # create command
-   cmd = 'python2.7 ' + paths['genobox_home'] + 'genobox_dbsnp_h.py'
+   cmd = paths['genobox_home'] + 'genobox_dbsnp_h.py'
    arg = ' --vcf %s --ex %s --dbsnp %s --o %s' % (vcf, ex, dbsnp, o)
    dbsnp_calls = [cmd+arg]
    

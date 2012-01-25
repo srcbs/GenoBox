@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/panvol1/simon/bin/python2.7
 
 from __future__ import division
 
@@ -14,7 +14,7 @@ def vcf_exchange_ids(vcf, ex, vcf_out):
    print 'vcf: %s' % vcf
    
    if ex and ex != 'None':
-      cmd = 'python2.7 ' + paths['genobox_home'] + 'genobox_exchangeids.py'
+      cmd = paths['genobox_home'] + 'genobox_exchangeids.py'
       if vcf.endswith('.gz'):
          call = 'gzip -dc %s | %s --x 0 --b %s --o %s' % (vcf, cmd, ex, vcf_out)
       else:
@@ -86,7 +86,7 @@ def write_indels_for_filtering(var_vcf, ex, indel_vcf):
    logger.info(grep_call)
    subprocess.check_call(grep_call, shell=True)
    
-   ex_cmd = 'python2.7 ' + paths['genobox_home'] + 'genobox_exchangeids.py'
+   ex_cmd = paths['genobox_home'] + 'genobox_exchangeids.py'
    ex_arg = ' --a tmp_file_indels --x 0 --b %s --o %s' % (ex, indel_vcf)
    ex_call = cmd + arg
    logger.info(ex_call)

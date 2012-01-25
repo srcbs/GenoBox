@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/panvol1/simon/bin/python2.7
 
 def start_vcffilter(bcf, genome, caller, Q, ex, rmsk, ab, prune, o, queue, dir, partition, logger):
    '''Start variant vcf-filter
@@ -33,7 +33,7 @@ def start_vcffilter(bcf, genome, caller, Q, ex, rmsk, ab, prune, o, queue, dir, 
    cpuB = 'nodes=1:ppn=16,mem=10gb,walltime=172800'
    
    # create command
-   cmd = 'python2.7 ' + paths['genobox_home'] + 'genobox_vcffilter_h.py'
+   cmd = paths['genobox_home'] + 'genobox_vcffilter_h.py'
    if dir and dir != 'None':
       outfile = '%s/%s.%s' % (os.path.split(o)[0], dir, os.path.split(o)[1])
    else:

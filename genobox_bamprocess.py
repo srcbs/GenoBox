@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/panvol1/simon/bin/python2.7
 
 # filter bam and sort
 def bam_filter_sort(lib2bam, bam2lib, m=500000000):
@@ -6,7 +6,7 @@ def bam_filter_sort(lib2bam, bam2lib, m=500000000):
    
    import genobox_modules
    paths = genobox_modules.setSystem()
-   cmd = 'python2.7 ' + paths['genobox_home'] + 'genobox_samFilterSort.py'
+   cmd = paths['genobox_home'] + 'genobox_samFilterSort.py'
    calls = []
    
    # set infiles and outfiles

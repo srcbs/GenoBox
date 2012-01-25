@@ -1,4 +1,4 @@
-#!/panvol1/simon/bin/python
+#!/panvol1/simon/bin/python2.7
 
 from genobox_alignment import *
 from genobox_bamprocess import *

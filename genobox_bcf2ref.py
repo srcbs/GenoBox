@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/panvol1/simon/bin/python2.7
 
 
 def get_genome(chr_file):
@@ -43,7 +43,7 @@ def start_bcf2ref(bcf, genome_file, Q, ex, dbsnp, rmsk, indels, o, queue, dir, p
    
    # create commands
    bcf2ref_calls = []
-   cmd = 'python2.7 ' + paths['genobox_home'] + 'genobox_bcf2ref_h.py'
+   cmd = paths['genobox_home'] + 'genobox_bcf2ref_h.py'
    for chr in genome:
       # set outfile name
       if len(genome) == 1:

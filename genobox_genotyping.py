@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/panvol1/simon/bin/python2.7
 
 def bam_index(bam):
    '''Index bam-file'''
@@ -34,7 +34,7 @@ def mpileup(bam, chr_file, fa, prior, pp):
    import os
    
    paths = genobox_modules.setSystem()
-   cmd = 'python2.7 ' + paths['genobox_home'] + 'genobox_mpileup.py'
+   cmd = paths['genobox_home'] + 'genobox_mpileup.py'
    calls = []
    outfiles = []
    

@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/panvol1/simon/bin/python2.7
 
 def check_fa(fa):
    '''Checks for a fa of the input fasta file. If not present creates it'''
