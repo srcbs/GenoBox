@@ -5,6 +5,7 @@
 
 import platform
 import os
+import sys
 import re
 import subprocess
 import time
@@ -636,6 +637,54 @@ def initialize_library(libfile, se=[], pe1=[], pe2=[], sample='sample', mapq=[30
    
    return library
 
+
+
+####################################
+
+###      CHECK GENOME FILE       ###
+
+####################################
+
+
+def check_genome(genome):
+   '''Check if genome file is valid'''
+   
+   # check if it can be opened
+   try:
+      fh = open(genome, 'r')
+   except:
+      sys.stdout.write('ERROR: Could not open genome-file\n')
+      sys.exit(1)
+   
+   # check fields
+   for line in fh:
+      line = line.rstrip()
+      fields = line.split('\t')
+      for i,f in enumerate(fields):
+         if i==1:
+            try: 
+               int(f)
+            except: 
+               sys.stdout.write('ERROR: Genome length in genome-file is not an integer\n')
+               sys.exit(1)
+         if i==3:
+            if f == "haploid" or f=="diploid" or f=="na": pass
+            else:
+               sys.stdout.write('ERROR: Genome file ploidy is not set as diploid, haploid or na: %s\n' % f)
+               sys.exit(1)
+         if i==4:
+            try:
+               int(f)
+            except:
+               sys.stdout.write('ERROR: Genome file min coverage not an integer: %s\n' % f)
+               sys.exit(1)
+         if i ==5:
+            try:
+               int(f)
+            except:
+               sys.stdout.write('ERROR: Genome file max coverage not an integer: %s\n' % f)
+               sys.exit(1)
+   
 
 
 

@@ -23,6 +23,9 @@ def start_abgv(args, logger):
    import os
    import subprocess
    
+   # check genome file
+   genobox_modules.check_genome(args.genome)
+   
    final_bam = 'alignment/%s.flt.sort.rmdup.bam' % args.sample
    final_bcf = 'genotyping/%s.all.bcf' % args.sample
    
