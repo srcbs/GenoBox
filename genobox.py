@@ -148,7 +148,7 @@ parser_bamstats.add_argument('--genome', help='file containing genome to analyse
 # genotyping
 parser_genotyping = subparsers.add_parser('genotyping', help='Genotyping using samtools on bam-file', parents=[parent_parser], formatter_class=lambda prog: argparse.HelpFormatter(prog,max_help_position=35, width=100), usage='genobox.py genotyping [options]')
 parser_genotyping.add_argument('--bam', help='input file', action=set_abspath())
-parser_genotyping.add_argument('--genome', help='file containing genome to analyse, format: chrom\tchrom_len\tchrom_short_name\tploidy\tmin_depth\tmax_depth\n', default=None, action=set_abspath())
+parser_genotyping.add_argument('--genome', help='file containing genome to analyse, format: chrom\tchrom_len\tchrom_short_name\tploidy\tmin_depth\tmax_depth\n', default=None, action=set_abspath(), required=True)
 parser_genotyping.add_argument('--fa', help='reference fasta', action=set_abspath())
 parser_genotyping.add_argument('--prior', help='type of prior to use for bayesian model (full, flat, cond2) [flat]', default='flat')
 parser_genotyping.add_argument('--pp', help='posterior probability cutoff [0.001]', default=0.001, type=float, action=required_interval(0,1))
@@ -176,7 +176,7 @@ parser_dbsnp.add_argument('--o', help='output vcf.gz [genotyping/snpcalls.dbsnp.
 # bcf2ref
 parser_bcf2ref = subparsers.add_parser('bcf2ref', help='Extract high confidence same-as-reference positions', parents=[parent_parser], formatter_class=lambda prog: argparse.HelpFormatter(prog,max_help_position=35, width=100), usage='genobox.py bcf2ref [options]')
 parser_bcf2ref.add_argument('--bcf', help='input bcf file', action=set_abspath())
-parser_bcf2ref.add_argument('--genome', help='file containing genome to analyse, format: chrom\tchrom_len\tchrom_short_name\tploidy\tmin_depth\tmax_depth\n', default=None, action=set_abspath())
+parser_bcf2ref.add_argument('--genome', help='file containing genome to analyse, format: chrom\tchrom_len\tchrom_short_name\tploidy\tmin_depth\tmax_depth\n', default=None, action=set_abspath(), required=True)
 parser_bcf2ref.add_argument('--Q', help='minimum quality score', type=float, default=20.0, action=required_interval(0,10000))
 parser_bcf2ref.add_argument('--ex', help='exhange chromosome names using file [None]', default=None, action=set_abspath())
 parser_bcf2ref.add_argument('--dbsnp', help='dbsnp file to use (vcf.gz format)', default=None, action=set_abspath())
@@ -233,7 +233,7 @@ parser_abgv.add_argument('--pl', help='if --libfile is not given, platform for e
 parser_abgv.add_argument('--a', help='maximum insert size for bwa sampe (-a) [500]', default=500, type=int)
 parser_abgv.add_argument('--N', help='maximum number of alignments to output in the XA tag [3]', default=3, type=int)
 parser_abgv.add_argument('--add_aln', help='additional parameters to bwa aln', default=None)
-parser_abgv.add_argument('--genome', help='file containing genome to analyse, format: chrom\tchrom_len\tchrom_short_name\tploidy\tmin_depth\tmax_depth\n', default=None, action=set_abspath())
+parser_abgv.add_argument('--genome', help='file containing genome to analyse, format: chrom\tchrom_len\tchrom_short_name\tploidy\tmin_depth\tmax_depth\n', default=None, action=set_abspath(), required=True)
 parser_abgv.add_argument('--tmpdir', help='temporary dir for rmdup [/panvol1/simon/tmp/]', default='/panvol1/simon/tmp/', action=set_abspath())
 parser_abgv.add_argument('--qtrim', help='quality threshold to trim 3\'', default=0, type=int, action=required_interval(0,1000))
 parser_abgv.add_argument('--prior', help='type of prior to use for bayesian model (full, flat, cond2) [flat]', default='flat')
