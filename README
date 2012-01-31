@@ -1,3 +1,20 @@
+    2012, Simon Rasmussen (simon@cbs.dtu.dk)
+    GenoBox is a toolbox for mapping and genotyping using Illumina short read data.
+    Copyright (C) 2012  Simon Rasmussen
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
 Welcome to the GenoBox wiki!
 GenoBox is a toolbox for mapping and genotyping using Illumina short read data. It is written in Python and uses bwa, samtools, picard, bedtools and various python scripts. GenoBox was created to be used on high performance computing clusters using the Moab (msub/qsub) system at the Center for Biological Sequence analysis (CBS), Technical University of Denmark (http://www.cbs.dtu.dk).
 It is intended to be used on the clusters (both CPR, CGE and the UV1000) where it will submit jobs to the queue and wait for them finish before starting dependent jobs. It can manage experiments with just a few lanes and also experiments with many (100s) of sequencing lanes, having both single end and paired end reads in the same experiment.
