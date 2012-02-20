@@ -24,13 +24,15 @@ def bam_filter_sort(lib2bam, bam2lib, m=500000000):
    return (calls, outfiles)
 
 # merge to libraries
-def merge_bam(libs, lib_infiles, add_suffix=False, final_suffix=''):
+def merge_bam(libs, lib_infiles, add_suffix=False, final_suffix='', tmpdir='/panvol1/simon/tmp/'):
    '''Merge bam files to libraries'''
    
    import genobox_modules
    paths = genobox_modules.setSystem()
    calls = []
    outfiles = []
+   java_call = paths['java_home']+'java -XX:ParallelGCThreads=8 -Xms4500m -Xmx4500m -jar '
+   picard_cmd = paths['picard_home'] + 'MergeSamFiles.jar'
    for i in range(len(libs)):
       lib = libs[i]
       
@@ -53,9 +55,11 @@ def merge_bam(libs, lib_infiles, add_suffix=False, final_suffix=''):
       if len(list_bams) == 1:
          call = 'cp %s %s' % (' '.join(list_bams), out_bam)
       else:
-         sam_cmd = paths['samtools_home'] + 'samtools merge'
-         sam_arg = ' %s %s' % (out_bam, ' '.join(list_bams))
-         call = sam_cmd+sam_arg
+         #sam_cmd = paths['samtools_home'] + 'samtools merge'
+         #sam_arg = ' %s %s' % (out_bam, ' '.join(list_bams))
+         #call = sam_cmd+sam_arg
+         arg = ' INPUT=%s OUTPUT=%s TMP_DIR=%s ASSUME_SORTED=true VALIDATION_STRINGENCY=LENIENT' % (' INPUT='.join(list_bams), out_bam, tmpdir)
+         call = java_call + picard_cmd + arg
       calls.append(call)
    return (calls, outfiles)
 
@@ -115,7 +119,7 @@ def start_bamprocess(library_file, bams, mapq, libs, tmpdir, queue, final_bam, s
    (filter_sort_calls, filter_sort_files) = bam_filter_sort(lib2bam, bam2lib, 1500000000)
    
    # merge to libs
-   (merge_lib_calls, librarys) = merge_bam(lib2bam.keys(), lib2bam.values(), add_suffix=True, final_suffix='.flt.sort.bam')
+   (merge_lib_calls, librarys) = merge_bam(lib2bam.keys(), lib2bam.values(), add_suffix=True, final_suffix='.flt.sort.bam', tmpdir=tmpdir)
    
    # rmdup on libs
    (rmdup_calls, rmdup_files) = rmdup(librarys, tmpdir)
