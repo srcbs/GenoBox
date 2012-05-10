@@ -733,24 +733,49 @@ def set_fqtype(f, gz):
    else:
       inhandle = open(f, "r")
    
+   count = 0
    type = 'not determined'
    for (title, sequence, quality) in FastqGeneralIterator(inhandle):
       qs = map(ord, quality)
-      for q in qs:
-         #print q
-         if q > 74:
-            type = 'Illumina'
-            break
-         elif q < 59:
-            type = 'Sanger'
-            break
+      pos = None
+      count +=1
+      if title.startswith('ERR') or title.startswith('SRR'):
+         for q in qs:
+            if pos == 'Illumina_Solexa':
+               if q < 64:
+                  type = 'Solexa'
+                  break
+               if count >= 5000:
+                  type = 'Illumina'
+                  break
+            if q > 83:
+               pos = 'Illumina_Solexa'
+            elif q < 59:
+               type = 'Sanger'
+               break
+      else:
+         for q in qs:
+            if pos == 'Illumina_Solexa':
+               if q < 64:
+                  type = 'Solexa'
+                  break
+               if count >= 5000:
+                  type = 'Illumina'
+                  break
+            if q > 83:
+               pos = 'Illumina_Solexa'
+            elif q < 59:
+               type = 'Sanger'
+               break
       if type != 'not determined':
          break
    
-   if type == 'not determined':
-      raise ValueError('Fastq format not identified, are you sure it is sanger/illumina?')
-   else:
-      return type
+   if type == 'not determined' and count < 5000 and pos == 'Illumina_Solexa':
+      type = 'Illumina'
+   elif type == 'not determined':
+      sys.stderr.write('Fastq format not identified, are you sure it is sanger/illumina/solexa?')
+      return None
+   return type
 
 
 ###################################

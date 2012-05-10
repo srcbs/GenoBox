@@ -233,6 +233,7 @@ if __name__ == '__main__':
    args = parser.parse_args()
    #args = parser.parse_args('--i Kleb-10-213361_2.interleaved.fastq --o Kleb-10-213361_2_1.interleaved.fastq.trim.fastq Kleb-10-213361_2_2.interleaved.fastq.trim.fastq'.split())
    #args = parser.parse_args('--i test_kleb_1.fq test_kleb_2.fq --min_length 25 --min_baseq 20 --min_avgq 20 --min_adaptor_match 20'.split())
+   #args = parser.parse_args('--i tmp_1.fastq tmp_2.fastq --min_length 25 --min_baseq 20 --min_avgq 20 --min_adaptor_match 20'.split())
 
    trim_reads(args)
    
