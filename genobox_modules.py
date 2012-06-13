@@ -96,6 +96,7 @@ def setSystem():
       sys['chain_index'] = '/panvol1/simon/databases/chainmap/'
       sys['taxonomy_ncbi'] = '/panvol1/simon/databases/taxonomy/'
       sys['R_home'] = '/tools/bin/'
+      sys['bwa_6_1_home'] = '/panvol1/simon/bin/bwa-0.6.1/'
    else:
       raise ValueError('Platform not identified')
    

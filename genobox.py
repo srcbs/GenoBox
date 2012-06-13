@@ -130,6 +130,8 @@ parser_alignment.add_argument('--a', help='maximum insert size for bwa sampe (-a
 parser_alignment.add_argument('--qtrim', help='quality threshold to trim 3\'', default=0, type=int, action=required_interval(0,1000))
 parser_alignment.add_argument('--N', help='maximum number of alignments to output in the XA tag [3]', default=3, type=int)
 parser_alignment.add_argument('--add_aln', help='additional parameters to bwa aln', default=None)
+parser_alignment.add_argument('--bwa6', help='use bwa-6.1 (False)', default=False, action='store_true')
+
 
 # bam process
 parser_bamprocess = subparsers.add_parser('bamprocess', help='Sort, filter, merge, rmdup and final merge of bams', parents=[parent_parser], formatter_class=lambda prog: argparse.HelpFormatter(prog,max_help_position=35, width=140), usage='genobox.py bamprocess [options]')
@@ -233,6 +235,7 @@ parser_abgv.add_argument('--pl', help='if --libfile is not given, platform for e
 parser_abgv.add_argument('--a', help='maximum insert size for bwa sampe (-a) [500]', default=500, type=int)
 parser_abgv.add_argument('--N', help='maximum number of alignments to output in the XA tag [3]', default=3, type=int)
 parser_abgv.add_argument('--add_aln', help='additional parameters to bwa aln', default=None)
+parser_abgv.add_argument('--bwa6', help='use bwa-6.1 (False)', default=False, action='store_true')
 parser_abgv.add_argument('--genome', help='file containing genome to analyse, format: chrom\tchrom_len\tchrom_short_name\tploidy\tmin_depth\tmax_depth\n', default=None, action=set_abspath(), required=True)
 parser_abgv.add_argument('--tmpdir', help='temporary dir for rmdup [/panvol1/simon/tmp/]', default='/panvol1/simon/tmp/', action=set_abspath())
 parser_abgv.add_argument('--qtrim', help='quality threshold to trim 3\'', default=0, type=int, action=required_interval(0,1000))
