@@ -23,7 +23,7 @@ def check_fa(fa, bwa6):
       else:
          sys.stderr.write('%s not found, creating bwa index\n' % fa)
          if bwa6:
-            call = paths['bwa_6_1_home'] + 'bwa index -a is %s' % fa
+            call = paths['bwa_6_2_home'] + 'bwa index -a is %s' % fa
          else:
             call = paths['bwa_home'] + 'bwa index -a is %s' % fa
          try: 
@@ -31,7 +31,7 @@ def check_fa(fa, bwa6):
          except:
             sys.stderr.write('bwa index -a is failed, trying bwa index -a bwtsw\n')
             if bwa6:
-               call = paths['bwa_6_1_home'] + 'bwa index -a bwtsw %s' % fa
+               call = paths['bwa_6_2_home'] + 'bwa index -a bwtsw %s' % fa
             else:
                call = paths['bwa_home'] + 'bwa index -a bwtsw %s' % fa
             try:
@@ -88,7 +88,7 @@ def bwa_se_align(fastqs, fa, fqtypes, qtrim, N, alignpath, bwa6, library, thread
    home = os.getcwd()
    
    # setting cpus
-   cpuA = 'nodes=1:ppn=1,mem=5gb,walltime=172800'
+   cpuA = 'nodes=1:ppn=1,mem=7gb,walltime=172800'
    cpuC = 'nodes=1:ppn=1,mem=2gb,walltime=172800'
    if threads != 1:
       cpuB = 'nodes=1:ppn=%s,mem=5gb,walltime=172800' % threads
@@ -101,7 +101,7 @@ def bwa_se_align(fastqs, fa, fqtypes, qtrim, N, alignpath, bwa6, library, thread
    
    # align
    if bwa6:
-      cmd = paths['bwa_6_1_home'] + 'bwa aln '
+      cmd = paths['bwa_6_2_home'] + 'bwa aln '
    else:
       cmd = paths['bwa_home'] + 'bwa aln '
    
@@ -128,7 +128,7 @@ def bwa_se_align(fastqs, fa, fqtypes, qtrim, N, alignpath, bwa6, library, thread
       bamfiles.append(bamfile)
       bamfiles_dict[fq] = bamfile
       if bwa6:
-         p = paths['bwa_6_1_home']
+         p = paths['bwa_6_2_home']
       else:
          p = paths['bwa_home']
       
@@ -160,7 +160,7 @@ def bwa_pe_align(pe1, pe2, fa, fqtypes_pe1, fqtypes_pe2, qtrim, N, alignpath, bw
    home = os.getcwd()
    
    # setting cpus
-   cpuA = 'nodes=1:ppn=1,mem=5gb,walltime=172800'
+   cpuA = 'nodes=1:ppn=1,mem=7gb,walltime=172800'
    cpuC = 'nodes=1:ppn=1,mem=2gb,walltime=172800'
    if threads != 1:
       cpuB = 'nodes=1:ppn=%s,mem=5gb,walltime=172800' % threads
@@ -173,7 +173,7 @@ def bwa_pe_align(pe1, pe2, fa, fqtypes_pe1, fqtypes_pe2, qtrim, N, alignpath, bw
    
    # align and sampe
    if bwa6:
-      cmd = paths['bwa_6_1_home'] + 'bwa '
+      cmd = paths['bwa_6_2_home'] + 'bwa '
    else:
       cmd = paths['bwa_home'] + 'bwa '
    
@@ -214,7 +214,7 @@ def bwa_pe_align(pe1, pe2, fa, fqtypes_pe1, fqtypes_pe2, qtrim, N, alignpath, bw
       bamfiles_dict[pe2[i]] = alignpath + f1 + '.bam'
       
       if bwa6:
-         p = paths['bwa_6_1_home']
+         p = paths['bwa_6_2_home']
       else:
          p = paths['bwa_home']
       
@@ -260,7 +260,7 @@ def bwasw_pacbio(fastqs, fa, fqtypes, alignpath, bwa6, library, threads, queue, 
    home = os.getcwd()
    
    # setting cpus
-   cpuA = 'nodes=1:ppn=1,mem=5gb,walltime=172800'
+   cpuA = 'nodes=1:ppn=1,mem=7gb,walltime=172800'
    cpuC = 'nodes=1:ppn=1,mem=2gb,walltime=172800'
    if threads != 1:
       cpuB = 'nodes=1:ppn=%s,mem=5gb,walltime=172800' % threads
@@ -269,7 +269,7 @@ def bwasw_pacbio(fastqs, fa, fqtypes, alignpath, bwa6, library, threads, queue, 
    
    # align
    if bwa6:
-      cmd = paths['bwa_6_1_home'] + 'bwa'
+      cmd = paths['bwa_6_2_home'] + 'bwa'
    else:
       cmd = paths['bwa_home'] + 'bwa'
    
@@ -308,7 +308,7 @@ def bwasw_iontorrent(fastqs, fa, fqtypes, alignpath, bwa6, library, threads, que
    home = os.getcwd()
    
    # setting cpus
-   cpuA = 'nodes=1:ppn=1,mem=5gb,walltime=172800'
+   cpuA = 'nodes=1:ppn=1,mem=7gb,walltime=172800'
    cpuC = 'nodes=1:ppn=1,mem=2gb,walltime=172800'
    if threads != 1:
       cpuB = 'nodes=1:ppn=%s,mem=5gb,walltime=172800' % threads
@@ -317,7 +317,7 @@ def bwasw_iontorrent(fastqs, fa, fqtypes, alignpath, bwa6, library, threads, que
    
    # align
    if bwa6:
-      cmd = paths['bwa_6_1_home'] + 'bwa '
+      cmd = paths['bwa_6_2_home'] + 'bwa '
    else:
       cmd = paths['bwa_home'] + 'bwa '
    

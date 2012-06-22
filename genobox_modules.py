@@ -78,7 +78,7 @@ def setSystem():
       sys['bwaindexes_home'] = '/panvol1/simon/bin/bwa-0.5.8a/indexes/'
       #sys['samtools_home'] = '/panvol1/simon/bin/samtools-0.1.12.a/'
       sys['samtools_svn_home'] = '/panvol1/simon/bin/samtools_svn/'
-      sys['samtools_home'] = '/panvol1/simon/bin/samtools-0.1.16/'
+      sys['samtools_home'] = '/panvol1/simon/bin/samtools-0.1.18/'
       sys['picard_home'] = '/panvol1/simon/bin/picard-tools-1.26/'
       sys['bedtools_home'] = '/panvol1/simon/bin/BEDTools-Version-2.12.0/'
       sys['greengenes_home'] = '/panvol1/simon/databases/greengenes/'
@@ -96,7 +96,7 @@ def setSystem():
       sys['chain_index'] = '/panvol1/simon/databases/chainmap/'
       sys['taxonomy_ncbi'] = '/panvol1/simon/databases/taxonomy/'
       sys['R_home'] = '/tools/bin/'
-      sys['bwa_6_1_home'] = '/panvol1/simon/bin/bwa-0.6.1/'
+      sys['bwa_6_2_home'] = '/panvol1/simon/bin/bwa-0.6.2/'
    else:
       raise ValueError('Platform not identified')
    
