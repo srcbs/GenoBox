@@ -105,13 +105,13 @@ def bwa_se_align(fastqs, fa, fqtypes, qtrim, N, alignpath, bwa6, library, thread
    else:
       cmd = paths['bwa_home'] + 'bwa aln '
    
+   if add_aln: cmd = cmd + add_aln
    bwa_align = []
    saifiles = []
    for i,fq in enumerate(fastqs):
       f = os.path.split(fq)[1]
       saifile = alignpath + f + '.sai'
       saifiles.append(saifile)
-      if add_aln: cmd = cmd + add_aln
       if fqtypes[i] == 'Illumina':
          arg = ' -I -t %i -q %i %s %s > %s' % (threads, qtrim, fa, fq, saifile)
       elif fqtypes[i] == 'Sanger':
