@@ -247,6 +247,7 @@ parser = argparse.ArgumentParser(description=
 
 # add the arguments
 parser.add_argument('--bcf', help='input bcf var file')
+parser.add_argument('--fa', help='reference fasta')
 parser.add_argument('--genome', help='file containing chromosomes to analyse, format: chrom\tchrom_len\tchrom_short_name\ploidy\tlow_d\thigh_d', default=None)
 parser.add_argument('--caller', help='samtools or gatk [samtools]', default='samtools')
 parser.add_argument('--Q', help='minimum quality score', type=float, default=20.0)

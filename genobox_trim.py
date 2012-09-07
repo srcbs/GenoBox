@@ -56,6 +56,7 @@ def start_trim(args, logger):
    from genobox_classes import Moab, Semaphore
    import subprocess
    import os
+   import sys
    
    # set queueing
    paths = genobox_modules.setSystem()
@@ -105,6 +106,7 @@ def start_trim(args, logger):
    s = Semaphore(semaphore_ids, home, 'read_trimming', args.queue, 60, 86400)
    s.wait()
    print "--------------------------------------"
+   sys.stderr.write('Done\n')
    
    # return trimmed files
    return (se_files, pe1_files, pe2_files)

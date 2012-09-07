@@ -81,6 +81,7 @@ def setSystem():
       sys['samtools_home'] = '/panvol1/simon/bin/samtools-0.1.18/'
       sys['picard_home'] = '/panvol1/simon/bin/picard-tools-1.26/'
       sys['bedtools_home'] = '/panvol1/simon/bin/BEDTools-Version-2.12.0/'
+      sys['bedtools_bin'] = '/panvol1/simon/bin/'                          # 2-16.2
       sys['greengenes_home'] = '/panvol1/simon/databases/greengenes/'
       sys['mothur_home'] = '/panvol1/simon/bin/Mothur-1.11.0/'
       sys['rna_hmm3_home'] = '/panvol1/simon/bin/rna_hmm3/'
@@ -97,6 +98,7 @@ def setSystem():
       sys['taxonomy_ncbi'] = '/panvol1/simon/databases/taxonomy/'
       sys['R_home'] = '/tools/bin/'
       sys['bwa_6_2_home'] = '/panvol1/simon/bin/bwa-0.6.2/'
+      sys['GATK_home'] = '/panvol1/simon/bin/GenomeAnalysisTK-2.0-34/'
    else:
       raise ValueError('Platform not identified')
    

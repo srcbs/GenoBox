@@ -23,6 +23,9 @@ def start_vcffilter(bcf, genome, caller, Q, ex, rmsk, ab, prune, o, queue, dir, 
    if not os.path.exists('genotyping'):
       os.makedirs('genotyping')
    
+   if not os.path.exists('genotyping/tmp'):
+      os.makedirs('genotyping/tmp')
+
    # set queueing
    paths = genobox_modules.setSystem()
    home = os.getcwd()
@@ -32,14 +35,19 @@ def start_vcffilter(bcf, genome, caller, Q, ex, rmsk, ab, prune, o, queue, dir, 
    cpuF = 'nodes=1:ppn=2,mem=2gb,walltime=172800'
    cpuB = 'nodes=1:ppn=16,mem=10gb,walltime=172800'
    
-   # create command
-   cmd = paths['genobox_home'] + 'genobox_vcffilter_h.py'
-   if dir and dir != 'None':
-      outfile = '%s/%s.%s' % (os.path.split(o)[0], dir, os.path.split(o)[1])
-   else:
-      outfile = o
-   arg = ' --bcf %s --genome %s --caller %s --Q %f --rmsk %s --ab %f --prune %i --o %s' % (bcf, genome, caller, Q, rmsk, ab, prune, outfile)
-   vcffilter_calls = [cmd+arg]
+   if caller == 'samtools':
+      
+      # create command
+      cmd = paths['genobox_home'] + 'genobox_vcffilter_h.py'
+      if dir and dir != 'None':
+         outfile = '%s/%s.%s' % (os.path.split(o)[0], dir, os.path.split(o)[1])
+      else:
+         outfile = o
+      arg = ' --bcf %s --genome %s --caller %s --Q %f --rmsk %s --ab %f --prune %i --o %s' % (bcf, genome, caller, Q, rmsk, ab, prune, outfile)
+      vcffilter_calls = [cmd+arg]
+   
+   elif caller == 'gatk':
+      
    
    # submit jobs
    print "Submitting jobs"

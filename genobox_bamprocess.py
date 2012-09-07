@@ -83,8 +83,44 @@ def rmdup(infiles, tmpdir):
       calls.append(call)
    return (calls, outfiles)
 
+def realign_bam(in_bam, out_bam, fa, known=None):
+   '''Runs realignment of bam'''
+   
+   import genobox_modules
+   paths = genobox_modules.setSystem()
+   calls = []
+   
+   gatk_cmd = paths['GATK_home'] + 'GenomeAnalysisTK.jar'
+   java_call = paths['java_home']+'java -Djava.io.tmpdir=/panvol1/simon/tmp/ -XX:ParallelGCThreads=8 -Xms4500m -Xmx4500m -jar %s ' % gatk_cmd
+   
+   realign_bam = out_bam.replace('.bam', '.realign.bam')
+   
+   # index bam
+   cmd = paths['samtools_home'] + 'samtools '
+   # adding pipe to make it being written as a shell-file so all commands are submitted at the same time (fix dependencies)
+   arg = 'index %s | cat - ' % in_bam
+   c = cmd+arg
+   #calls.append(cmd+arg)
+   
+   # realigner target creator
+   if known:
+      arg = '-I %s -R %s -T RealignerTargetCreator -known %s -o %s' % (in_bam, fa, known, in_bam+'.intervals')
+   else:
+      arg = '-I %s -R %s -T RealignerTargetCreator -o %s' % (in_bam, fa, in_bam+'.intervals')
+   #calls.append(java_call+arg)
+   c = '%s\n\n%s%s' % (c, java_call, arg)
+   
+   # realignment step
+   arg = '-I %s -T IndelRealigner -R %s -targetIntervals %s -o %s' % (in_bam, fa, in_bam+'.intervals', realign_bam)
+   #calls.append(java_call+arg)
+   c = '%s\n\n%s%s' % (c, java_call, arg)
+   
+   calls = [c]
+   
+   return (calls, realign_bam)
 
-def start_bamprocess(library_file, bams, mapq, libs, tmpdir, queue, final_bam, sample, partition, logger):
+
+def start_bamprocess(library_file, bams, mapq, libs, tmpdir, queue, final_bam, realignment, known, fa, sample, partition, logger):
    '''Starts bam processing of input files'''
    
    import subprocess
@@ -124,8 +160,13 @@ def start_bamprocess(library_file, bams, mapq, libs, tmpdir, queue, final_bam, s
    # rmdup on libs
    (rmdup_calls, rmdup_files) = rmdup(librarys, tmpdir)
    
-   # merge to final file
-   (merge_final_call, final_file) = merge_bam([final_bam], [rmdup_files], add_suffix=False)
+   # optional: realignment
+   if realignment:
+      (merge_final_call, sample_file) = merge_bam([final_bam], [rmdup_files], add_suffix=False)
+      (realign_calls, final_file) = realign_bam(final_bam, final_bam, fa, known)
+   else:
+      # merge to final file
+      (merge_final_call, final_file) = merge_bam([final_bam], [rmdup_files], add_suffix=False)
    
    
    ## SUBMIT JOBS ##
@@ -135,6 +176,9 @@ def start_bamprocess(library_file, bams, mapq, libs, tmpdir, queue, final_bam, s
    mergelib_moab = Moab(merge_lib_calls, logfile=logger, runname='run_genobox_lib_merge', queue=queue, cpu=cpuE, depend=True, depend_type='complex', depend_val=map(len, lib2bam.values()), depend_ids=filtersort_moab.ids, partition=partition)
    rmdup_moab = Moab(rmdup_calls, logfile=logger, runname='run_genobox_rmdup', queue=queue, cpu=cpuE, depend=True, depend_type='one2one', depend_val=[1], depend_ids=mergelib_moab.ids, partition=partition)          # NB: If memory should be changed, also change java memory spec in rmdup function
    mergefinal_moab = Moab(merge_final_call, logfile=logger, runname='run_genobox_final_merge', queue=queue, cpu=cpuC, depend=True, depend_type='conc', depend_val=[len(rmdup_moab.ids)], depend_ids=rmdup_moab.ids, partition=partition)
+   if realignment:
+      realign_moab = Moab(realign_calls, logfile=logger, runname='run_genobox_realignment', queue=queue, cpu=cpuE, depend=True, depend_type='one2one', depend_val=[1], depend_ids=mergefinal_moab.ids, partition=partition)
+   # realignment calls needs to be written together in a shell-file or dependent on each other #
    
    # release jobs #
    print "Releasing jobs"
@@ -142,10 +186,14 @@ def start_bamprocess(library_file, bams, mapq, libs, tmpdir, queue, final_bam, s
    mergelib_moab.release()
    rmdup_moab.release()
    mergefinal_moab.release()
+   if realignment: realign_moab.release()
    
    # semaphore
    print "Waiting for jobs to finish ..." 
-   s = Semaphore(mergefinal_moab.ids, home, 'bam_processing', queue, 20, 2*86400)
+   if realignment:
+      s = Semaphore(realign_moab.ids, home, 'bam_processing', queue, 20, 2*86400)
+   else:
+      s = Semaphore(mergefinal_moab.ids, home, 'bam_processing', queue, 20, 2*86400)
    s.wait()
    print "--------------------------------------"
    

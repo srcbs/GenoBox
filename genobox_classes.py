@@ -101,7 +101,7 @@ class Moab:
                for index in self.depend_val:
                   s = ':'.join(self.depend_ids[old_index:(index+old_index)])
                   depends.append(s)
-                  old_index=index
+                  old_index=index+old_index
             
             elif self.depend_type == 'all':
                depends = []

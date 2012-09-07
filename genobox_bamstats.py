@@ -13,7 +13,7 @@ def sam_flagstat(bam):
    call = paths['samtools_home'] + 'samtools flagstat %s > stats/%s.flagstat' % (bam, bamf)
    return [call]
 
-def bed_genomeCov(bam, genome):
+def bed_genomeCov(bam):
    '''Start bedtools genomeCoverageBed'''
    
    import os
@@ -23,7 +23,7 @@ def bed_genomeCov(bam, genome):
    # set bam-file sans paths (input is abspath(bam))
    bamf = os.path.split(bam)[1]   
    
-   call = paths['bedtools_home'] + 'genomeCoverageBed -ibam %s -g %s > stats/%s.coverage' % (bam, genome, bamf)
+   call = paths['bedtools_bin'] + '-ibam %s > stats/%s.coverage' % (bam, bamf)
    return [call]
 
 def plot_coverage(bam):
@@ -51,7 +51,10 @@ def python_avgdepth(bam):
    
    call = paths['genobox_home'] + 'genobox_bam2avgdepth.py %s > stats/%s.avgdepth' % (bam, bamf)
    return [call]
-   
+
+#def mapdamage(bam, fa):
+
+
 def start_bamstats(args, bam, partition, logger, wait=True):
    '''Starts calculation of bam statistics'''
    
@@ -73,13 +76,13 @@ def start_bamstats(args, bam, partition, logger, wait=True):
    home = os.getcwd()
    cpuA = 'nodes=1:ppn=1,mem=512mb,walltime=172800'
    cpuC = 'nodes=1:ppn=1,mem=2gb,walltime=172800'
-   cpuE = 'nodes=1:ppn=1,mem=5gb,walltime=172800'
+   cpuE = 'nodes=1:ppn=1,mem=7gb,walltime=172800'
    cpuF = 'nodes=1:ppn=2,mem=2gb,walltime=172800'
    cpuB = 'nodes=1:ppn=16,mem=10gb,walltime=172800'
       
    # create calls
    flagstat_calls = sam_flagstat(bam)
-   coverage_calls = bed_genomeCov(bam, args.genome)
+   coverage_calls = bed_genomeCov(bam)
    plotcoverage_calls = plot_coverage(bam)
    avgdepth_calls = python_avgdepth(bam)
    

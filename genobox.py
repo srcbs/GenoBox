@@ -139,34 +139,45 @@ parser_bamprocess.add_argument('--libfile', help='input parameter file', action=
 parser_bamprocess.add_argument('--bam', help='input bam-files', nargs='+', action=set_abspath())
 parser_bamprocess.add_argument('--mapq', help='mapping quality threshold', type=int, nargs='+', default=[30])
 parser_bamprocess.add_argument('--libs', help='library name for each bam file', nargs='+', default=['lib'])
+parser_bamprocess.add_argument('--realignment', help='toggle realignment using GATK [False]', default=False, action='store_true')
+parser_bamprocess.add_argument('--fa', help='if realignment, reference fasta', action=set_abspath())
+parser_bamprocess.add_argument('--known', help='if realignment, known indels to align around [None]', default=None)
 parser_bamprocess.add_argument('--tmpdir', help='temporary dir for rmdup [/panvol1/simon/tmp/]', default='/panvol1/simon/tmp/', action=set_abspath())
 parser_bamprocess.add_argument('--outbam', help='output file [alignment/final.flt.sort.rmdup.bam]', default='alignment/final.flt.sort.rmdup.bam')
 
 # bam stats
 parser_bamstats = subparsers.add_parser('bamstats', help='Statistics of alignment', parents=[parent_parser], formatter_class=lambda prog: argparse.HelpFormatter(prog,max_help_position=35, width=140), usage='genobox.py bamstats [options]')
 parser_bamstats.add_argument('--bam', help='input bam-file', action=set_abspath())
-parser_bamstats.add_argument('--genome', help='file containing genome to analyse, format: chrom\tchrom_len\tchrom_short_name\tploidy\tmin_depth\tmax_depth\n', default=None, action=set_abspath())
+parser_bamstats.add_argument('--fa', help='reference genome (for mapdamage only)', default=None, action=set_abspath())
 
 # genotyping
 parser_genotyping = subparsers.add_parser('genotyping', help='Genotyping using samtools on bam-file', parents=[parent_parser], formatter_class=lambda prog: argparse.HelpFormatter(prog,max_help_position=35, width=100), usage='genobox.py genotyping [options]')
 parser_genotyping.add_argument('--bam', help='input file', action=set_abspath())
-parser_genotyping.add_argument('--genome', help='file containing genome to analyse, format: chrom\tchrom_len\tchrom_short_name\tploidy\tmin_depth\tmax_depth\n', default=None, action=set_abspath(), required=True)
+parser_genotyping.add_argument('--caller', help='samtools or gatk [samtools]', default='samtools')
 parser_genotyping.add_argument('--fa', help='reference fasta', action=set_abspath())
-parser_genotyping.add_argument('--prior', help='type of prior to use for bayesian model (full, flat, cond2) [flat]', default='flat')
-parser_genotyping.add_argument('--pp', help='posterior probability cutoff [0.001]', default=0.001, type=float, action=required_interval(0,1))
-parser_genotyping.add_argument('--o', help='output bcffile [genotyping/snpcalls.bcf]', default='genotyping/snpcalls.bcf')
+parser_genotyping.add_argument('--genome', help='file containing genome to analyse, format: chrom\tchrom_len\tchrom_short_name\tploidy\tmin_depth\tmax_depth\n', default=None, action=set_abspath(), required=True)
+parser_genotyping.add_argument('--prior', help='samtools: type of prior to use for bayesian model (samtools) (full, flat, cond2) [flat]', default='flat')
+parser_genotyping.add_argument('--pp', help='samtools: posterior probability cutoff [0.001]', default=0.001, type=float, action=required_interval(0,1))
+parser_genotyping.add_argument('--o', help='samtools: output bcffile [genotyping/snpcalls.bcf]', default='genotyping/snpcalls.bcf')
+parser_genotyping.add_argument('--dbsnp', help='gatk: dbsnp file to use (vcf.gz format)', default=None, action=set_abspath())
+parser_genotyping.add_argument('--call_conf', help='gatk: posterior probability filter (phred) [30]', default=30, type=float)
+parser_genotyping.add_argument('--call_emit', help='gatk: posterior probability emit (phred) [10]', default=10, type=float)
+parser_genotyping.add_argument('--output_mode', help='gatk: output mode (EMIT_VARIANTS_ONLY, EMIT_ALL_CONFIDENT_SITES, EMIT_ALL_SITES)', default='EMIT_VARIANTS_ONLY')
+
 
 # vcffilter
 parser_vcffilter = subparsers.add_parser('vcffilter', help='Filter variant genotyping (vcf)', parents=[parent_parser], formatter_class=lambda prog: argparse.HelpFormatter(prog,max_help_position=35, width=140), usage='genobox.py vcffilter [options]')
-parser_vcffilter.add_argument('--bcf', help='input bcf var file', action=set_abspath())
+parser_vcffilter.add_argument('--bcf', help='samtools: input bcf file', action=set_abspath())
+parser_vcffilter.add_argument('--vcfs', help='gatk: input vcf files', action=set_abspath(), nargs='+')
 parser_vcffilter.add_argument('--genome', help='file containing genome to analyse, format: chrom\tchrom_len\tchrom_short_name\tploidy\tmin_depth\tmax_depth\n', default=None, action=set_abspath())
 parser_vcffilter.add_argument('--caller', help='samtools or gatk [samtools]', default='samtools')
 parser_vcffilter.add_argument('--Q', help='minimum quality score', type=float, default=20.0, action=required_interval(0,10000))
-parser_vcffilter.add_argument('--ex', help='exhange chromosome names using file [None]', default=None)
 parser_vcffilter.add_argument('--rmsk', help='rmsk to use', default=None, action=set_abspath())
 parser_vcffilter.add_argument('--ab', help='allelic balance threshold [0.5] (no filter)', type=float, default=0.50, action=required_interval(0,1))
 parser_vcffilter.add_argument('--prune', help='distance (nt) to prune within [0] (no filter)', type=int, default=0, action=required_interval(0,100000000))
-parser_vcffilter.add_argument('--o', help='output vcf.gz [genotyping/snpcalls.vcf.gz]', default='genotyping/snpcalls.vcf.gz')
+parser_vcffilter.add_argument('--o', help='samtools: output vcf.gz [genotyping/snpcalls.vcf.gz]', default='genotyping/snpcalls.vcf.gz')
+parser_vcffilter.add_argument('--ex', help='samtools: exhange chromosome names using file [None]', default=None)
+parser_vcffilter.add_argument('--fa', help='gatk: reference fasta', action=set_abspath())
 
 # dbsnp
 parser_dbsnp = subparsers.add_parser('dbsnp', help='Annotate vcf file with dbSNP information', parents=[parent_parser], formatter_class=lambda prog: argparse.HelpFormatter(prog,max_help_position=35, width=140), usage='genobox.py dbsnp [options]')
@@ -217,10 +228,35 @@ parser_ab.add_argument('--mapq', help='if --libfile is not given, mapping qualit
 parser_ab.add_argument('--pl', help='if --libfile is not given, platform for each input fq (order: se, pe1, pe2)', nargs='+', default=['ILLUMINA'], action=required_choices(['CAPILLARY', 'LS454', 'ILLUMINA', 'SOLID', 'HELICOS', 'IONTORRENT', 'PACBIO']))
 parser_ab.add_argument('--a', help='maximum insert size for bwa sampe (-a) [500]', default=500, type=int)
 parser_ab.add_argument('--N', help='maximum number of alignments to output in the XA tag [3]', default=3, type=int)
+parser_ab.add_argument('--bwa6', help='use bwa-6.1 (False)', default=False, action='store_true')
 parser_ab.add_argument('--add_aln', help='additional parameters to bwa aln', default=None)
+parser_ab.add_argument('--realignment', help='toggle realignment using GATK [False]', default=False, action='store_true')
+parser_ab.add_argument('--known', help='if realignment, known indels to align around [None]', default=None)
 parser_ab.add_argument('--tmpdir', help='temporary dir for rmdup [/panvol1/simon/tmp/]', default='/panvol1/simon/tmp/', action=set_abspath())
 parser_ab.add_argument('--qtrim', help='quality threshold to trim 3\'', default=0, type=int, action=required_interval(0,1000))
 parser_ab.add_argument('--outbam', help='output file [alignment/final.flt.sort.rmdup.bam]', default='alignment/final.flt.sort.rmdup.bam')
+
+# gv
+parser_gv = subparsers.add_parser('gv', help='Genotyping and filtering using samtools or gatk', parents=[parent_parser], formatter_class=lambda prog: argparse.HelpFormatter(prog,max_help_position=35, width=100), usage='genobox.py genotyping [options]')
+parser_gv.add_argument('--bam', help='input file', action=set_abspath())
+parser_gv.add_argument('--caller', help='samtools or gatk [samtools]', default='samtools')
+parser_gv.add_argument('--fa', help='reference fasta', action=set_abspath())
+parser_gv.add_argument('--genome', help='file containing genome to analyse, format: chrom\tchrom_len\tchrom_short_name\tploidy\tmin_depth\tmax_depth\n', default=None, action=set_abspath(), required=True)
+parser_gv.add_argument('--dbsnp', help='dbsnp file to use (vcf.gz format)', default=None, action=set_abspath())
+parser_gv.add_argument('--Q', help='minimum quality score', type=float, default=20.0, action=required_interval(0,10000))
+parser_gv.add_argument('--ab', help='allelic balance threshold [0.5] (no filter)', type=float, default=0.50, action=required_interval(0,1))
+parser_gv.add_argument('--prune', help='distance (nt) to prune within [0] (no filter)', type=int, default=0, action=required_interval(0,100000000))
+parser_gv.add_argument('--rmsk', help='rmsk to use', default=None, action=set_abspath())
+parser_gv.add_argument('--o', help='samtools: output vcf.gz [genotyping/snpcalls.vcf.gz]', default='genotyping/snpcalls.vcf.gz')
+parser_gv.add_argument('--ex', help='samtools: exhange chromosome names using file [None]', default=None)
+parser_gv.add_argument('--prior', help='samtools: type of prior to use for bayesian model (samtools) (full, flat, cond2) [flat]', default='flat')
+parser_gv.add_argument('--pp', help='samtools: posterior probability cutoff [0.001]', default=0.001, type=float, action=required_interval(0,1))
+parser_gv.add_argument('--ovar', help='samtools: output variant vcf-file [genotyping/\"name\".var.flt.vcf.gz]', default='genotyping/var.flt.vcf.gz')
+parser_gv.add_argument('--oref', help='samtools: output reference vcf-file [genotyping/\"name\".ref.flt.vcf.gz]', default='genotyping/ref.flt.vcf.gz')
+parser_gv.add_argument('--call_conf', help='gatk: posterior probability filter (phred) [30]', default=30, type=float)
+parser_gv.add_argument('--call_emit', help='gatk: posterior probability emit (phred) [10]', default=10, type=float)
+parser_gv.add_argument('--output_mode', help='gatk: output mode (EMIT_VARIANTS_ONLY, EMIT_ALL_CONFIDENT_SITES, EMIT_ALL_SITES)', default='EMIT_VARIANTS_ONLY')
+
 
 # abgv
 parser_abgv = subparsers.add_parser('abgv', help='Perform alignment, bam-processing, genotyping and filtering', parents=[parent_parser], formatter_class=lambda prog: argparse.HelpFormatter(prog,max_help_position=35, width=140), usage='genobox.py abgv [options]')
@@ -237,6 +273,8 @@ parser_abgv.add_argument('--N', help='maximum number of alignments to output in 
 parser_abgv.add_argument('--add_aln', help='additional parameters to bwa aln', default=None)
 parser_abgv.add_argument('--bwa6', help='use bwa-6.1 (False)', default=False, action='store_true')
 parser_abgv.add_argument('--genome', help='file containing genome to analyse, format: chrom\tchrom_len\tchrom_short_name\tploidy\tmin_depth\tmax_depth\n', default=None, action=set_abspath(), required=True)
+parser_abgv.add_argument('--realignment', help='toggle realignment using GATK [False]', default=False, action='store_true')
+parser_abgv.add_argument('--known', help='if realignment, known indels to align around [None]', default=None)
 parser_abgv.add_argument('--tmpdir', help='temporary dir for rmdup [/panvol1/simon/tmp/]', default='/panvol1/simon/tmp/', action=set_abspath())
 parser_abgv.add_argument('--qtrim', help='quality threshold to trim 3\'', default=0, type=int, action=required_interval(0,1000))
 parser_abgv.add_argument('--prior', help='type of prior to use for bayesian model (full, flat, cond2) [flat]', default='flat')
@@ -273,8 +311,10 @@ args = parser.parse_args()
 #args = parser.parse_args('abgv --no_trim --se /panvol1/simon/projects/cge/haiti/data/ebi/SRP004712/SRR075153.fastq.trim.fq /panvol1/simon/projects/cge/haiti/data/ebi/SRP004712/SRR075154.fastq.trim.fq --sample Vcholerae_C6 --fa /panvol1/simon/databases/bacteria/vibrio_cholerae_O1_N16961.fa --genome /panvol1/simon/databases/bacteria/vibrio_cholerae_O1_N16961.genome --libfile libs.C6.txt.3'.split())
 #args = parser.parse_args('ab --se /panvol1/simon/projects/cge/test/1000G/tmp_se.fastq.g --pe1 /panvol1/simon/projects/cge/test/1000G/tmp_pe_1.fastq.gz --pe2 /panvol1/simon/projects/cge/test/1000G/tmp_pe_2.fastq.gz --fa /panvol1/simon/databases/hs_ref37_gatk/human_g1k_v37.fasta --libfile libs.tmp.txt --sample tmp_testing --gz'.split())
 #args = parser.parse_args('ab --se /panfs1/ponten_tom/trimmed/00020.s_1_1.fq_filtered.fq.gz.trim.fq.single.gz /panfs1/ponten_tom/trimmed/00020.s_1_2.fq_filtered.fq.gz.trim.fq.single.gz --pe1 /panfs1/ponten_tom/trimmed/00020.s_1_1.fq_filtered.fq.gz.trim.fq.gz --pe2 /panfs1/ponten_tom/trimmed/00020.s_1_2.fq_filtered.fq.gz.trim.fq.gz --libfile libs.tommerup.txt --fa /panvol1/simon/databases/hs_ref37_gatk/human_g1k_v37.fasta --a 3000 --n 4 --gz --sample test --partition cge-cluster'.split())
-
+#args = parser.parse_args('bamprocess --bam kleb_realign_retest/alignment/Kleb-10-213361_2_1_sequence.txt.bam --libfile kleb_realign_retest/libs.kleb_realign_retest.txt --realignment --fa kleb_pneu.fa --partition cge-cluster --sample kleb_realign_retest'.split())
 #args = parser.parse_args('trim --pe1 giantSquid01A_170bp.fq  --pe2 giantSquid01B_170bp.fq --min_length 60 --min_baseq 20 --min_avgq 20 --adaptors GATCGGAAGAGCGTCGTGTAGGGAAAGAGTGT GATCGGAAGAGCGGTTCAGCAGGAATGCCGAG ACACTCTTTCCCTACACGACGCTCTTCCGATC CTCGGCATTCCTGCTGAACCGCTCTTCCGATC'.split())
+#args = parser.parse_args('genotyping --bam Aleutian_1_1.flt.sort.bam --genome hg18.geo.male.genome --fa .hg18.geo.fa --pp 0.01 --dbsnp /panvol1/simon/projects/botocudo/build37/dbsnp_135.b37.vcf.gz'.split(' '))
+#args = parser.parse_args('bamprocess --bam alignment/Aleutian_2_1_1.01082012_all_lanes.single.truncated.gz.bam alignment/Aleutian_2_1_1.05062012_all_lanes.pair1.truncated.gz.bam alignment/Aleutian_2_1_2.01082012_all_lanes.single.truncated.gz.bam alignment/Aleutian_2_1_2.05062012_all_lanes.pair1.truncated.gz.bam alignment/Aleutian_2_2_1.01082012_all_lanes.single.truncated.gz.bam alignment/Aleutian_2_2_1.05062012_all_lanes.pair1.truncated.gz.bam alignment/Aleutian_2_2_2.01082012_all_lanes.single.truncated.gz.bam alignment/Aleutian_2_2_2.05062012_all_lanes.pair1.truncated.gz.bam --libfile libs.arctic.txt.3NAZNJXTBV --realignment --fa /panvol1/simon/projects/arctic/references/build37/hs.build37.1.fa'.split(' '))
 
 
 # If working dir is given, create and move to working directory else run where program is invoked
@@ -311,19 +351,27 @@ if args.module == 'alignment':
 
 elif args.module == 'bamprocess':
    from genobox_bamprocess import *
-   final_bam = start_bamprocess(args.libfile, args.bam, args.mapq, args.libs, args.tmpdir, args.queue, args.outbam, args.sample, args.partition, logger)
+   final_bam = start_bamprocess(args.libfile, args.bam, args.mapq, args.libs, args.tmpdir, args.queue, args.outbam, args.realignment, args.known, args.fa, args.sample, args.partition, logger)
 
 elif args.module == 'bamstats':
    from genobox_bamstats import *
    start_bamstats(args, args.bam, args.partition, logger)
 
 elif args.module == 'genotyping':
-   from genobox_genotyping import *
-   final_bcf = start_genotyping(args.bam, args.genome, args.fa, args.prior, args.pp, args.queue, args.o, args.sample, args.partition, logger)
+   if args.caller == 'samtools':
+      from genobox_genotyping import *
+      final_bcf = start_genotyping(args.bam, args.genome, args.fa, args.prior, args.pp, args.queue, args.o, args.sample, args.partition, logger)
+   elif args.caller == 'gatk':
+      from genobox_genotyping_gatk import *
+      vcffiles = start_genotyping_gatk(args.bam, args.genome, args.fa, args.dbsnp, args.call_conf, args.call_emit, args.output_mode, args.queue, args.sample, args.partition, logger)
 
 elif args.module == 'vcffilter':
-   from genobox_vcffilter import *
-   final_vcf = start_vcffilter(args.bcf, args.genome, args.caller, args.Q, args.ex, args.rmsk, args.ab, args.prune, args.o, args.queue, args.sample, args.partition, logger)
+   if args.caller == 'samtools':
+      from genobox_vcffilter import *
+      final_vcf = start_vcffilter(args.bcf, args.genome, args.caller, args.Q, args.ex, args.rmsk, args.ab, args.prune, args.o, args.queue, args.sample, args.partition, logger)
+   elif args.caller == 'gatk':
+      from genobox_vcffilter_gatk import *
+      final_vcf = start_vcffilter_gatk(args.vcfs, args.genome, args.fa, args.Q, args.rmsk, args.ab, args.prune, args.queue, args.sample, args.partition, logger)
 
 elif args.module == 'dbsnp':
    from genobox_dbsnp import *
@@ -336,6 +384,10 @@ elif args.module == 'bcf2ref':
 elif args.module == 'ab':
    from genobox_ab import *
    start_ab(args, logger)
+
+elif args.module == 'gv':
+   from genobox_gv import *
+   start_gv(args, logger)
    
 elif args.module == 'abgv':
    from genobox_abgv import *

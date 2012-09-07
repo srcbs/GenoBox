@@ -94,6 +94,7 @@ def bcf_index(bcf):
    calls.append(cmd+arg)
    return calls
 
+
 def start_genotyping(bam, chr, fa, prior, pp, queue, o, sample, partition, logger):
    '''Starts genotyping using samtools of input bam file'''
    
