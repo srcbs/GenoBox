@@ -22,7 +22,15 @@ def samFilterSort(i, q, m, o, F):
          call = '%s view -u -q %i %s |  %s sort -m %s - %s' % (sam_cmd, q, i, sam_cmd, m, o)
    #logger.info(call)
    subprocess.check_call(call, shell=True)
+
+def picardFilterSort(i, q, o):
+   '''Filters bam on quality and sort using picard'''
    
+   paths = genobox_modules.setSystem()
+   call = '''java -XX:ParallelGCThreads=8 -Xms1500m -Xmx1500m -jar %s/ViewSam.jar INPUT=%s ALIGNMENT_STATUS=Aligned VALIDATION_STRINGENCY=LENIENT | perl -ane 'if ($_ =~ m/^@/) {print $_;} else {if ($F[4] >= %i) { print $_ }}' | java -XX:ParallelGCThreads=8 -Xms4500m -Xmx4500m -jar %s/SortSam.jar INPUT=/dev/stdin OUTPUT=%s SORT_ORDER=coordinate VALIDATION_STRINGENCY=LENIENT TMP_DIR=/panvol1/simon/tmp MAX_RECORDS_IN_RAM=1000000''' % (paths['picard_home'], i, q, paths['picard_home'], o)
+   subprocess.call(call, shell=True)
+   
+
 
 parser = argparse.ArgumentParser(description='''
    Filters bam for quality and sort
@@ -49,4 +57,5 @@ if args.log == 'info':
    logger.setLevel(logging.INFO)
 
 # filter
-samFilterSort(args.i, args.q, args.m, args.o, args.F)
+#samFilterSort(args.i, args.q, args.m, args.o, args.F)
+picardFilterSort(args.i, args.q, args.o)

@@ -148,6 +148,7 @@ parser_bamprocess.add_argument('--outbam', help='output file [alignment/final.fl
 # bam stats
 parser_bamstats = subparsers.add_parser('bamstats', help='Statistics of alignment', parents=[parent_parser], formatter_class=lambda prog: argparse.HelpFormatter(prog,max_help_position=35, width=140), usage='genobox.py bamstats [options]')
 parser_bamstats.add_argument('--bam', help='input bam-file', action=set_abspath())
+parser_bamstats.add_argument('--mapdamage', help='run only mapdamage, needs lots of memory use UV', default=False, action='store_true')
 parser_bamstats.add_argument('--fa', help='reference genome (for mapdamage only)', default=None, action=set_abspath())
 
 # genotyping
@@ -276,6 +277,7 @@ parser_abgv.add_argument('--genome', help='file containing genome to analyse, fo
 parser_abgv.add_argument('--realignment', help='toggle realignment using GATK [False]', default=False, action='store_true')
 parser_abgv.add_argument('--known', help='if realignment, known indels to align around [None]', default=None)
 parser_abgv.add_argument('--tmpdir', help='temporary dir for rmdup [/panvol1/simon/tmp/]', default='/panvol1/simon/tmp/', action=set_abspath())
+parser_abgv.add_argument('--mapdamage', help='run only mapdamage, needs lots of memory use UV', default=False, action='store_true')
 parser_abgv.add_argument('--qtrim', help='quality threshold to trim 3\'', default=0, type=int, action=required_interval(0,1000))
 parser_abgv.add_argument('--prior', help='type of prior to use for bayesian model (full, flat, cond2) [flat]', default='flat')
 parser_abgv.add_argument('--pp', help='posterior probability cutoff [0.001]', default=0.001, type=float, action=required_interval(0,1))

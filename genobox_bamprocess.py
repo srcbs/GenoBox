@@ -16,7 +16,7 @@ def bam_filter_sort(lib2bam, bam2lib, m=500000000):
    outfiles = []
    for library in infiles:
       for f in library:
-         sort_prefix = f + '.flt.sort'
+         sort_prefix = f + '.flt.sort.bam'
          out_bam = f + '.flt.sort.bam'
          outfiles.append(out_bam)
          arg = ' --i %s --q %s --m %i --o %s' % (f, bam2lib[f][0], m, sort_prefix)
@@ -136,6 +136,7 @@ def start_bamprocess(library_file, bams, mapq, libs, tmpdir, queue, final_bam, r
    cpuE = 'nodes=1:ppn=1,mem=5gb,walltime=172800'
    cpuF = 'nodes=1:ppn=2,mem=2gb,walltime=172800'
    cpuB = 'nodes=1:ppn=16,mem=10gb,walltime=172800'
+   cpuH = 'nodes=1:ppn=2,mem=7gb,walltime=172800'
    
    # create library instance
    if library_file and library_file != 'None':
@@ -172,7 +173,7 @@ def start_bamprocess(library_file, bams, mapq, libs, tmpdir, queue, final_bam, r
    ## SUBMIT JOBS ##
    
    print "Submitting jobs"
-   filtersort_moab = Moab(filter_sort_calls, logfile=logger, runname='run_genobox_filtersort', queue=queue, cpu=cpuE, partition=partition)
+   filtersort_moab = Moab(filter_sort_calls, logfile=logger, runname='run_genobox_filtersort', queue=queue, cpu=cpuH, partition=partition)
    mergelib_moab = Moab(merge_lib_calls, logfile=logger, runname='run_genobox_lib_merge', queue=queue, cpu=cpuE, depend=True, depend_type='complex', depend_val=map(len, lib2bam.values()), depend_ids=filtersort_moab.ids, partition=partition)
    rmdup_moab = Moab(rmdup_calls, logfile=logger, runname='run_genobox_rmdup', queue=queue, cpu=cpuE, depend=True, depend_type='one2one', depend_val=[1], depend_ids=mergelib_moab.ids, partition=partition)          # NB: If memory should be changed, also change java memory spec in rmdup function
    mergefinal_moab = Moab(merge_final_call, logfile=logger, runname='run_genobox_final_merge', queue=queue, cpu=cpuC, depend=True, depend_type='conc', depend_val=[len(rmdup_moab.ids)], depend_ids=rmdup_moab.ids, partition=partition)

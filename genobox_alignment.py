@@ -91,7 +91,10 @@ def bwa_se_align(fastqs, fa, fqtypes, qtrim, N, alignpath, bwa6, library, thread
    cpuA = 'nodes=1:ppn=1,mem=7gb,walltime=172800'
    cpuC = 'nodes=1:ppn=1,mem=2gb,walltime=172800'
    if threads != 1:
-      cpuB = 'nodes=1:ppn=%s,mem=5gb,walltime=172800' % threads
+      if partition == 'uv':
+         cpuB = 'procs=%s,mem=5gb,walltime=172800,flags=sharedmem' % threads
+      else:
+         cpuB = 'nodes=1:ppn=%s,mem=5gb,walltime=172800' % threads
    else:
       cpuB = cpuA
    
@@ -163,7 +166,10 @@ def bwa_pe_align(pe1, pe2, fa, fqtypes_pe1, fqtypes_pe2, qtrim, N, alignpath, bw
    cpuA = 'nodes=1:ppn=1,mem=7gb,walltime=172800'
    cpuC = 'nodes=1:ppn=1,mem=2gb,walltime=172800'
    if threads != 1:
-      cpuB = 'nodes=1:ppn=%s,mem=5gb,walltime=172800' % threads
+      if partition == 'uv':
+         cpuB = 'procs=%s,mem=5gb,walltime=172800,flags=sharedmem' % threads
+      else:
+         cpuB = 'nodes=1:ppn=%s,mem=5gb,walltime=172800' % threads
    else:
       cpuB = cpuA
    
@@ -263,7 +269,10 @@ def bwasw_pacbio(fastqs, fa, fqtypes, alignpath, bwa6, library, threads, queue, 
    cpuA = 'nodes=1:ppn=1,mem=7gb,walltime=172800'
    cpuC = 'nodes=1:ppn=1,mem=2gb,walltime=172800'
    if threads != 1:
-      cpuB = 'nodes=1:ppn=%s,mem=5gb,walltime=172800' % threads
+      if partition == 'uv':
+         cpuB = 'procs=%s,mem=5gb,walltime=172800,flags=sharedmem' % threads
+      else:
+         cpuB = 'nodes=1:ppn=%s,mem=5gb,walltime=172800' % threads
    else:
       cpuB = cpuA
    
@@ -311,7 +320,10 @@ def bwasw_iontorrent(fastqs, fa, fqtypes, alignpath, bwa6, library, threads, que
    cpuA = 'nodes=1:ppn=1,mem=7gb,walltime=172800'
    cpuC = 'nodes=1:ppn=1,mem=2gb,walltime=172800'
    if threads != 1:
-      cpuB = 'nodes=1:ppn=%s,mem=5gb,walltime=172800' % threads
+      if partition == 'uv':
+         cpuB = 'procs=%s,mem=5gb,walltime=172800,flags=sharedmem' % threads
+      else:
+         cpuB = 'nodes=1:ppn=%s,mem=5gb,walltime=172800' % threads
    else:
       cpuB = cpuA
    

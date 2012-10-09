@@ -46,8 +46,6 @@ def start_vcffilter(bcf, genome, caller, Q, ex, rmsk, ab, prune, o, queue, dir, 
       arg = ' --bcf %s --genome %s --caller %s --Q %f --rmsk %s --ab %f --prune %i --o %s' % (bcf, genome, caller, Q, rmsk, ab, prune, outfile)
       vcffilter_calls = [cmd+arg]
    
-   elif caller == 'gatk':
-      
    
    # submit jobs
    print "Submitting jobs"
