@@ -98,7 +98,7 @@ def setSystem():
       sys['taxonomy_ncbi'] = '/panvol1/simon/databases/taxonomy/'
       sys['R_home'] = '/tools/bin/'
       sys['bwa_6_2_home'] = '/panvol1/simon/bin/bwa-0.6.2/'
-      sys['GATK_home'] = '/panvol1/simon/bin/GenomeAnalysisTK-2.0-34/'
+      sys['GATK_home'] = '/panvol1/simon/bin/GenomeAnalysisTK-2.2-3/'
    else:
       raise ValueError('Platform not identified')
    

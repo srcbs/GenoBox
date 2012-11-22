@@ -27,7 +27,7 @@ def vcf_filterAll(bcf, chr_id, d, D, Q, ex, vcf_out_gz):
    
    vcf_filter_call = vcf_filter_cmd + vcf_filter_arg
    
-   call = '%s | %s | bgzip -c > %s' % (bcf_call, vcf_filter_call, vcf_out_gz)
+   call = '%s | %s | %sbgzip -c > %s' % (bcf_call, vcf_filter_call, paths['bin_home'], vcf_out_gz)
    logger.info(call)
    subprocess.check_call(call, shell=True)
 
@@ -47,7 +47,7 @@ def vcf_annotate_dbsnp(vcfgz, dbsnp, vcf_out_gz):
    
    if dbsnp and dbsnp != 'None':
       gunzip_call = '/usr/bin/gunzip -c %s' % vcfgz
-      fill_call = paths['bin_home'] + 'fill-rsIDs -r %s | bgzip -c > %s' % (dbsnp, vcf_out_gz)
+      fill_call = paths['bin_home'] + 'fill-rsIDs -r %s | %sbgzip -c > %s' % (dbsnp, paths['bin_home'], vcf_out_gz)
       
       dbsnp_call = '%s | %s' % (gunzip_call, fill_call)
       logger.info(dbsnp_call)

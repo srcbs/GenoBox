@@ -112,8 +112,13 @@ def filter_vcf(f, genome, rms_mq=25.0, Q=30.0, allelic_balance=0.2):
          
          # allelic balance
          ab_split = tag_fields[1].split(',')
-         ab = float(ab_split[0])/(int(ab_split[1])+int(ab_split[0]))
-         if ab > 0.5: ab = 1/ab
+         ab_sum = sum(map(int, ab_split))          # may happen with deletions
+         if ab_sum == 0:
+            pass
+         else:
+            ab = float(ab_split[0])/(sum(map(int, ab_split)))
+         
+         if ab > 0.5: ab = 1-ab
          
          state = tag_fields[0]
          if state == '0/1':
@@ -121,9 +126,9 @@ def filter_vcf(f, genome, rms_mq=25.0, Q=30.0, allelic_balance=0.2):
                continue
             if ab < allelic_balance:
                continue
-         if state == '1/1':
-            if 1-ab < allelic_balance:
-               continue
+         #if state == '1/1':
+         #   if 1-ab < allelic_balance:
+         #      continue
          
          # write out
          if len(fields[3]) > 1:
@@ -143,7 +148,7 @@ def filter_vcf(f, genome, rms_mq=25.0, Q=30.0, allelic_balance=0.2):
    
    return [f_indels, f_snps, f_ref]
 
-def gatk_filtration(filtered_vcfs, fa, rmsk, logger):
+def gatk_filtration(filtered_vcfs, fa, rmsk, prune, logger):
    '''Filter indels using VariantFiltration'''
    
    import genobox_modules
@@ -164,9 +169,9 @@ def gatk_filtration(filtered_vcfs, fa, rmsk, logger):
    # indels
    f_indels_pass = filtered_vcfs[0].replace('.raw.vcf.gz.indels.vcf', '.indels.pass.vcf')
    if rmsk:
-      arg = """ -T VariantFiltration -R %s --variant %s --clusterSize 2 --clusterWindowSize 5 -o /dev/stdout | perl -ne 'if ($_ =~ m/^INFO/) {} else {print $_}' | cat - | %s -v -a stdin -b %s | cat %s - > %s""" % (fa, filtered_vcfs[0], bed_cmd, rmsk, header_vcf, f_indels_pass)
+      arg = """ -T VariantFiltration -R %s --variant %s --clusterSize 2 --clusterWindowSize %i -o /dev/stdout | perl -ne 'if ($_ =~ m/^INFO/ or $_ =~ m/^WARN/) {} else {print $_}' | cat - | %s -v -a stdin -b %s | grep "PASS" | cat %s - > %s""" % (fa, filtered_vcfs[0], prune, bed_cmd, rmsk, header_vcf, f_indels_pass)
    else:
-      arg = ' -T VariantFiltration -R %s --variant %s --clusterSize 2 --clusterWindowSize 5 -o %s' % (fa, filtered_vcfs[0], f_indels_pass)
+      arg = ' -T VariantFiltration -R %s --variant %s --clusterSize 2 --clusterWindowSize %i -o %s' % (fa, filtered_vcfs[0], prune, f_indels_pass)
    #logger.info(cmd+arg)
    ec.append(subprocess.call(cmd+arg, shell=True))
    
@@ -178,9 +183,9 @@ def gatk_filtration(filtered_vcfs, fa, rmsk, logger):
    
    f_snps_pass = filtered_vcfs[1].replace('.raw.vcf.gz.snps.vcf', '.snps.pass.vcf')
    if rmsk:
-      arg = ''' -T VariantFiltration -R %s --variant %s --clusterSize 2 --clusterWindowSize 5 --mask %s -maskName indel -o /dev/stdout | perl -ne 'if ($_ =~ m/^INFO/) { } else {print $_}' | cat - | %s -v -a stdin -b %s | cat %s - > %s''' % (fa, filtered_vcfs[1], f_indels_pass, bed_cmd, rmsk, header_vcf, f_snps_pass)
+      arg = ''' -T VariantFiltration -R %s --variant %s --clusterSize 2 --clusterWindowSize %i --mask %s -maskName indel -o /dev/stdout | perl -ne 'if ($_ =~ m/^INFO/ or $_ =~ m/^WARN/) {} else {print $_}'  | cat - | %s -v -a stdin -b %s | grep "PASS" | cat %s - > %s''' % (fa, filtered_vcfs[1], prune, f_indels_pass, bed_cmd, rmsk, header_vcf, f_snps_pass)
    else:
-      arg = ' -T VariantFiltration -R %s --variant %s --clusterSize 2 --clusterWindowSize 5 --mask %s -maskName indel -o %s' % (fa, filtered_vcfs[1], f_indels_pass, f_snps_pass)
+      arg = ' -T VariantFiltration -R %s --variant %s --clusterSize 2 --clusterWindowSize %i --mask %s -maskName indel -o %s' % (fa, filtered_vcfs[1], prune, f_indels_pass, f_snps_pass)
    #logger.info(cmd+arg)
    ec.append(subprocess.call(cmd+arg, shell=True))
    
@@ -190,11 +195,15 @@ def gatk_filtration(filtered_vcfs, fa, rmsk, logger):
    grep_cmd = '''head -n 2000 %s | grep "#" > %s''' % (filtered_vcfs[0], header_vcf)
    ec.append(subprocess.call(grep_cmd, shell=True))
    
+   # dont grep PASS because it is not written for non-variants
    f_ref_pass = filtered_vcfs[2].replace('.raw.vcf.gz.ref.vcf', '.ref.pass.vcf')
    if rmsk:
-      arg = ''' -T VariantFiltration -R %s --variant %s --mask %s -maskName indel -o /dev/stdout | perl -ne 'if ($_ =~ m/^INFO/) { } else {print $_}' | cat - | %s -v -a stdin -b %s | cat %s - > %s''' % (fa, filtered_vcfs[2], f_indels_pass, bed_cmd, rmsk, header_vcf, f_ref_pass)
+      if f_ref_pass.find('.MT.') > -1:
+         arg = ''' -T VariantFiltration -R %s --variant %s --mask %s -maskName indel -o /dev/stdout | perl -ne 'if ($_ =~ m/^INFO/ or $_ =~ m/^WARN/) {} else {print $_}' | cat - | %sgenobox_vcffilter_mt.py --rmsk %s | cat %s - > %s''' % (fa, filtered_vcfs[2], f_indels_pass, paths['genobox_home'], rmsk, header_vcf, f_ref_pass)
+      else:
+         arg = ''' -T VariantFiltration -R %s --variant %s --mask %s -maskName indel -o /dev/stdout | perl -ne 'if ($_ =~ m/^INFO/ or $_ =~ m/^WARN/) {} else {print $_}' | cat - | %s -v -a stdin -b %s | cat %s - > %s''' % (fa, filtered_vcfs[2], f_indels_pass, bed_cmd, rmsk, header_vcf, f_ref_pass)
    else:
-      arg = ' -T VariantFiltration -R %s --variant %s --clusterSize 2 --clusterWindowSize 5 --mask %s -maskName indel -o %s' % (fa, filtered_vcfs[2], f_indels_pass, f_ref_pass)
+      arg = ' -T VariantFiltration -R %s --variant %s --mask %s -maskName indel -o %s' % (fa, filtered_vcfs[2], f_indels_pass, f_ref_pass)
    #logger.info(cmd+arg)
    ec.append(subprocess.call(cmd+arg, shell=True))
    
@@ -204,7 +213,7 @@ def gatk_filtration(filtered_vcfs, fa, rmsk, logger):
       final_vcf = filtered_vcfs[0].replace('tmp/tmp.', 'genotyping/').replace('.raw.vcf.gz.indels.vcf', '.filtered.rmsk.vcf.gz')
    else:
       final_vcf = filtered_vcfs[0].replace('tmp/tmp.', 'genotyping/').replace('.raw.vcf.gz.indels.vcf', '.filtered.vcf.gz')
-   arg = ''' -T CombineVariants -U LENIENT_VCF_PROCESSING --assumeIdenticalSamples -R %s --variant %s --variant %s --variant %s -o /dev/stdout | perl -ne 'if ($_ =~ m/^INFO/) {} else {print $_}' | gzip -c - > %s''' % (fa, f_indels_pass, f_snps_pass, f_ref_pass, final_vcf)
+   arg = ''' -T CombineVariants -U LENIENT_VCF_PROCESSING --assumeIdenticalSamples -R %s --variant %s --variant %s --variant %s -o /dev/stdout | perl -ne 'if ($_ =~ m/^INFO/ or $_ =~ m/^WARN/) {} else {print $_}' | gzip -c - > %s''' % (fa, f_indels_pass, f_snps_pass, f_ref_pass, final_vcf)
    #logger.info(cmd+arg)
    ec.append(subprocess.call(cmd+arg, shell=True))
    
@@ -226,28 +235,42 @@ def gatk_filtration(filtered_vcfs, fa, rmsk, logger):
    ec.append(subprocess.call(arg, shell=True))
    
 
-def clean(f, filtered_vcfs):
+def clean(f):
    '''Clean up tmp and raw files'''
    
    import genobox_modules
    import os
+      
+   # finding files to delete
+   f_base = os.path.split(f)[1]
+   f_base = f_base.replace('.raw.vcf.gz', '')
+   f_base = 'tmp/tmp.' + f_base
+   files_to_delete = []
+   files_to_delete.append(f_base+'.header.vcf')
+   files_to_delete.append(f_base+'.indels.pass.vcf')
+   files_to_delete.append(f_base+'.indels.pass.vcf.idx')
+   files_to_delete.append(f_base+'.raw.vcf.gz.indels.vcf')
+   files_to_delete.append(f_base+'.raw.vcf.gz.indels.vcf.idx')
+   files_to_delete.append(f_base+'.raw.vcf.gz.ref.vcf')
+   files_to_delete.append(f_base+'.raw.vcf.gz.ref.vcf.idx')
+   files_to_delete.append(f_base+'.raw.vcf.gz.snps.vcf')
+   files_to_delete.append(f_base+'.raw.vcf.gz.snps.vcf.idx')
+   files_to_delete.append(f_base+'.ref.pass.vcf')
+   files_to_delete.append(f_base+'.ref.pass.vcf.idx')
+   files_to_delete.append(f_base+'.snps.pass.vcf')
+   files_to_delete.append(f_base+'.snps.pass.vcf.idx')
    
-   genobox_modules.rm_files([f])
-   genobox_modules.rm_files([filtered_vcfs])
-   
-   f_indels_pass = filtered_vcfs[0].replace('.raw.vcf.gz.indels.vcf', '.indels.pass.vcf')
-   f_snps_pass = filtered_vcfs[1].replace('.raw.vcf.gz.snps.vcf', '.snps.pass.vcf')
-   f_ref_pass = filtered_vcfs[2].replace('.raw.vcf.gz.ref.vcf', '.ref.pass.vcf')
-   genobox_modules.rm_files([f_indels_pass, f_snps_pass, f_ref_pass])
+   # deleting files
+   genobox_modules.rm_files(files_to_delete)
 
 
 def main(args, logger):
    '''Filter raw vcfs'''
    
    filtered_vcfs = filter_vcf(args.vcf, args.genome, 25.0, args.Q, args.ab)
-   gatk_filtration(filtered_vcfs, args.fa, args.rmsk, logger)
-   clean(args.vcf, filtered_vcfs)
-   
+   gatk_filtration(filtered_vcfs, args.fa, args.rmsk, args.prune, logger)
+   clean(args.vcf)
+
 
 if __name__ == '__main__':
    
@@ -266,8 +289,9 @@ if __name__ == '__main__':
    parser.add_argument('--log', help='log level [info]', default='info')
    
    args = parser.parse_args()
-   #args = parser.parse_args('--vcf /panvol1/simon/projects/cge/test/gatk/Athabascan_1/genotyping/final.flt.sort.rmdup.realign.Y.raw.vcf.gz --fa /panvol1/simon/projects/arctic/references/build37/hs.build37.1.fa --genome /panvol1/simon/projects/cge/test/gatk/hs.build37.1.fa.male.lowdp.genome --Q 30.000000 --rmsk /panvol1/simon/projects/arctic/references/build37/rmsk.build37 --prune 5 --ab 0.1'.split())
-
+   #args = parser.parse_args('--vcf genotyping/BI16.flt.sort.rmdup.realign.22.raw.vcf.gz --fa /panvol1/simon/projects/arctic/references/build37/hs.build37.1.fa --genome /panvol1/simon/projects/arctic/references/build37/hs.build37.1.fa.male.hc.genome --Q 40.000000 --rmsk /panvol1/simon/projects/arctic/references/build37/rmsk.build37 --ab 0.200000 --prune 5'.split())
+   #args = parser.parse_args('--vcf /home/projects5/pr_99009/people/simon/projects/stanford_genomes/analysis/BI16/genotyping/BI16.flt.sort.rmdup.realign.MT.raw.vcf.gz --fa /panvol1/simon/projects/arctic/references/build37/hs.build37.1.fa --genome /panvol1/simon/projects/arctic/references/build37/hs.build37.1.fa.male.hc.genome --Q 40.000000 --rmsk /panvol1/simon/projects/arctic/references/build37/rmsk.build37 --ab 0.200000 --prune 5'.split())
+   
    # set logging
    logger = logging.getLogger('genobox.py')
    hdlr = logging.FileHandler('genobox.log')

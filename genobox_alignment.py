@@ -448,7 +448,7 @@ def start_alignment(args, logger):
    # wait for jobs to finish
    print "Waiting for jobs to finish ..." 
    
-   s = Semaphore(semaphore_ids, home, 'bwa_alignment', args.queue, 60, 86400)
+   s = Semaphore(semaphore_ids, home, 'bwa_alignment', args.queue, 60, 172800)
    s.wait()
    
    print "--------------------------------------"
