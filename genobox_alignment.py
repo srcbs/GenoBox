@@ -91,7 +91,7 @@ def bwa_se_align(fastqs, fa, fqtypes, qtrim, N, alignpath, bwa6, library, thread
    cpuA = 'nodes=1:ppn=1,mem=7gb,walltime=172800'
    cpuC = 'nodes=1:ppn=1,mem=2gb,walltime=172800'
    if threads != 1:
-      if partition == 'uv':
+      if partition == 'uv' or partition == 'uv2':
          cpuB = 'procs=%s,mem=5gb,walltime=172800,flags=sharedmem' % threads
       else:
          cpuB = 'nodes=1:ppn=%s,mem=5gb,walltime=172800' % threads
@@ -146,8 +146,8 @@ def bwa_se_align(fastqs, fa, fqtypes, qtrim, N, alignpath, bwa6, library, thread
       
    # release jobs
    print "Releasing jobs"
-   bwa_align_moab.release()
-   bwa_samse_moab.release()
+   #bwa_align_moab.release()
+   #bwa_samse_moab.release()
       
    return (bwa_samse_moab.ids, bamfiles_dict)
 
@@ -166,7 +166,7 @@ def bwa_pe_align(pe1, pe2, fa, fqtypes_pe1, fqtypes_pe2, qtrim, N, alignpath, bw
    cpuA = 'nodes=1:ppn=1,mem=7gb,walltime=172800'
    cpuC = 'nodes=1:ppn=1,mem=2gb,walltime=172800'
    if threads != 1:
-      if partition == 'uv':
+      if partition == 'uv' or partition == 'uv2':
          cpuB = 'procs=%s,mem=5gb,walltime=172800,flags=sharedmem' % threads
       else:
          cpuB = 'nodes=1:ppn=%s,mem=5gb,walltime=172800' % threads
@@ -248,9 +248,9 @@ def bwa_pe_align(pe1, pe2, fa, fqtypes_pe1, fqtypes_pe2, qtrim, N, alignpath, bw
    
    # release jobs
    print "Releasing jobs"
-   bwa_align1_moab.release()
-   bwa_align2_moab.release()
-   bwa_sampe_moab.release()
+   #bwa_align1_moab.release()
+   #bwa_align2_moab.release()
+   #bwa_sampe_moab.release()
       
    return (bwa_sampe_moab.ids, bamfiles_dict)
 
@@ -269,7 +269,7 @@ def bwasw_pacbio(fastqs, fa, fqtypes, alignpath, bwa6, library, threads, queue, 
    cpuA = 'nodes=1:ppn=1,mem=7gb,walltime=172800'
    cpuC = 'nodes=1:ppn=1,mem=2gb,walltime=172800'
    if threads != 1:
-      if partition == 'uv':
+      if partition == 'uv' or partition == 'uv2':
          cpuB = 'procs=%s,mem=5gb,walltime=172800,flags=sharedmem' % threads
       else:
          cpuB = 'nodes=1:ppn=%s,mem=5gb,walltime=172800' % threads
@@ -302,7 +302,7 @@ def bwasw_pacbio(fastqs, fa, fqtypes, alignpath, bwa6, library, threads, queue, 
    
    # release jobs
    print "Releasing jobs"
-   bwa_align_moab.release()
+   #bwa_align_moab.release()
    
    return (bwa_align_moab.ids, bamfiles_dict)
 
@@ -320,7 +320,7 @@ def bwasw_iontorrent(fastqs, fa, fqtypes, alignpath, bwa6, library, threads, que
    cpuA = 'nodes=1:ppn=1,mem=7gb,walltime=172800'
    cpuC = 'nodes=1:ppn=1,mem=2gb,walltime=172800'
    if threads != 1:
-      if partition == 'uv':
+      if partition == 'uv' or partition == 'uv2':
          cpuB = 'procs=%s,mem=5gb,walltime=172800,flags=sharedmem' % threads
       else:
          cpuB = 'nodes=1:ppn=%s,mem=5gb,walltime=172800' % threads
@@ -353,7 +353,7 @@ def bwasw_iontorrent(fastqs, fa, fqtypes, alignpath, bwa6, library, threads, que
    
    # release jobs
    print "Releasing jobs"
-   bwa_align_moab.release()
+   #bwa_align_moab.release()
    
    return (bwa_align_moab.ids, bamfiles_dict)
 

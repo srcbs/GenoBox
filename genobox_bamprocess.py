@@ -183,11 +183,11 @@ def start_bamprocess(library_file, bams, mapq, libs, tmpdir, queue, final_bam, r
    
    # release jobs #
    print "Releasing jobs"
-   filtersort_moab.release()
-   mergelib_moab.release()
-   rmdup_moab.release()
-   mergefinal_moab.release()
-   if realignment: realign_moab.release()
+   #filtersort_moab.release()
+   #mergelib_moab.release()
+   #rmdup_moab.release()
+   #mergefinal_moab.release()
+   #if realignment: realign_moab.release()
    
    # semaphore
    print "Waiting for jobs to finish ..." 
