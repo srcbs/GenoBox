@@ -141,7 +141,7 @@ class Moab:
          cmd = '/panvol1/simon/bin/pipeline/xqsub'
          
          # toggle if job should be on hold or env variable should be added
-         if self.hold: cmd = '%s -h ' % cmd
+         #if self.hold: cmd = '%s -h ' % cmd
          if self.env: cmd = cmd + ' -v %s' % self.env
          
          if not self.depend:
@@ -198,7 +198,7 @@ class Moab:
          # create qsub command
          cmd = 'qsub'
          # toggle if on hold or env variable
-         if self.hold: cmd = '%s -h' % cmd
+         #if self.hold: cmd = '%s -h' % cmd
          if self.env: cmd = cmd + ' -v %s' % self.env
          
          if not self.depend:
