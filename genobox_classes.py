@@ -3,7 +3,7 @@
 
 # class
 class Moab:
-   '''Submits a list of calls to the scheduler using msub/xmsub. Job dependencies are controlled using depend (logical), depend_type ('one2one', 'expand', 'conc', 'complex', 'all'), depend_val (list of integers) and ids (list of jobids):
+   '''Submits a list of calls to the scheduler using qsub/xqsub. Job dependencies are controlled using depend (logical), depend_type ('one2one', 'expand', 'conc', 'complex', 'all'), depend_val (list of integers) and ids (list of jobids):
          
          'one2one' makes job 1 dependent on id 1, job 2 on id 2 ...
          'expand' makes n first jobs dependent on id 1, next n jobs dependent on id 2 ...
@@ -113,8 +113,8 @@ class Moab:
                raise AttributeError('depend_type not recognized: %s' % self.depend_type)
       return depends
    
-   def submit_xmsub(self, depends, logger):
-      '''Submits jobs using xmsub'''
+   def submit_xqsub(self, depends, logger):
+      '''Submits jobs using xqsub'''
       
       import re
       import subprocess
@@ -137,37 +137,37 @@ class Moab:
             call = match.group(1)
             stdout = '%s/%s' % (home, match.group(2))
          
-         # create xmsub commands
-         cmd = '/panvol1/simon/bin/pipeline/xmsub'
+         # create xqsub commands
+         cmd = '/panvol1/simon/bin/pipeline/xqsub'
          
          # toggle if job should be on hold or env variable should be added
          if self.hold: cmd = '%s -h ' % cmd
          if self.env: cmd = cmd + ' -v %s' % self.env
          
          if not self.depend:
-            xmsub = cmd+' -d %s -l %s,partition=%s -O %s -E %s -r y -q %s -N %s -t %s' % (home, self.cpu, self.partition, stdout, stderr, self.queue, self.runname, call)
+            xqsub = cmd+' -d %s -l %s,partition=%s -O %s -E %s -r y -q %s -N %s -t %s' % (home, self.cpu, self.partition, stdout, stderr, self.queue, self.runname, call)
          else:
-            xmsub = cmd+' -d %s -l %s,depend=%s,partition=%s -O %s -E %s -r y -q %s -N %s -t %s' % (home, self.cpu, depends[i], self.partition, stdout, stderr, self.queue, self.runname, call)
+            xqsub = cmd+' -d %s -l %s,depend=%s,partition=%s -O %s -E %s -r y -q %s -N %s -t %s' % (home, self.cpu, depends[i], self.partition, stdout, stderr, self.queue, self.runname, call)
          
          time.sleep(3)
-         if logger: logger.info(xmsub)
+         if logger: logger.info(xqsub)
                    
          # submit
          try:
-            id = subprocess.check_output(xmsub, shell=True)
+            id = subprocess.check_output(xqsub, shell=True)
             #print id
          except:
-            print 'Job error for \"%s\" waiting 1m' % xmsub
+            print 'Job error for \"%s\" waiting 1m' % xqsub
             time.sleep(60)
             sys.stdout.write('Retrying submission...')
-            id = subprocess.check_output(xmsub, shell=True)
+            id = subprocess.check_output(xqsub, shell=True)
             sys.stdout.write(' success - continuing\n')
-         ids.append(id.split('\n')[1])
+         ids.append(id.split('.')[0])
          #print ids
       return(ids)
    
    def submit_wrapcmd(self, depends, logger):
-      '''Take input as command and submit to msub (this way pipes and redirects can be done)'''
+      '''Take input as command and submit to qsub (this way pipes and redirects can be done)'''
       
       import subprocess
       import random
@@ -195,30 +195,30 @@ class Moab:
          fh.write('%s\n' % call)
          fh.close()
          
-         # create msub command
-         cmd = 'msub'
+         # create qsub command
+         cmd = 'qsub'
          # toggle if on hold or env variable
          if self.hold: cmd = '%s -h' % cmd
          if self.env: cmd = cmd + ' -v %s' % self.env
          
          if not self.depend:
-            msub = '%s -d %s -l %s,partition=%s -o %s -e %s -q %s -r y -N %s %s' % (cmd, home, self.cpu, self.partition, stdout, stderr, self.queue, self.runname, filename)
+            qsub = '%s -d %s -l %s,partition=%s -o %s -e %s -q %s -r y -N %s %s' % (cmd, home, self.cpu, self.partition, stdout, stderr, self.queue, self.runname, filename)
          else:
-            msub = '%s -d %s -l %s,depend=%s,partition=%s -o %s -e %s -q %s -r y -N %s %s' % (cmd, home, self.cpu, depends[i], self.partition, stdout, stderr, self.queue, self.runname, filename)
+            qsub = '%s -d %s -l %s,depend=%s,partition=%s -o %s -e %s -q %s -r y -N %s %s' % (cmd, home, self.cpu, depends[i], self.partition, stdout, stderr, self.queue, self.runname, filename)
          
          time.sleep(3)
-         if logger: logger.info(msub)
+         if logger: logger.info(qsub)
          # submit
          try:
-            id = subprocess.check_output(msub, shell=True)
+            id = subprocess.check_output(qsub, shell=True)
             #print id
          except:
-            print 'Job error for \"%s\" waiting 1m' % msub
+            print 'Job error for \"%s\" waiting 1m' % qsub
             time.sleep(60)
             sys.stdout.write('Retrying submission...')
-            id = subprocess.check_output(msub, shell=True)
+            id = subprocess.check_output(qsub, shell=True)
             sys.stdout.write(' success - continuing\n')
-         ids.append(id.split('\n')[1])
+         ids.append(id.split('.')[0])
          
          # remove pbsjob file
          #rm_files([filename])
@@ -244,8 +244,8 @@ class Moab:
          # perform wrapcmd if calls includes pipes / left-redirects
          self.ids = self.submit_wrapcmd(depends, logger)
       else:
-         # perform xmsub if calls does not include pipes (can have right-redirects)
-         self.ids = self.submit_xmsub(depends, logger)
+         # perform xqsub if calls does not include pipes (can have right-redirects)
+         self.ids = self.submit_xqsub(depends, logger)
       
    
    def release(self):
@@ -298,8 +298,8 @@ class Semaphore:
       
       # submit job 
       depends = ':'.join(self.semaphore_ids)
-      xmsub = '%sxmsub -d %s -l ncpus=1,mem=10mb,walltime=180,depend=%s -O %s -q %s -N semaphores -E %s -r y -t echo done' % (paths['pyscripts_home'], self.home, depends, semaphore_file, self.queue, semaphore_file_err)
-      dummy_id = subprocess.check_output(xmsub, shell=True)
+      xqsub = '%sxqsub -d %s -l ncpus=1,mem=10mb,walltime=180,depend=%s -O %s -q %s -N semaphores -E %s -r y -t echo done' % (paths['pyscripts_home'], self.home, depends, semaphore_file, self.queue, semaphore_file_err)
+      dummy_id = subprocess.check_output(xqsub, shell=True)
       
       # check for file to appear
       cnt = self.max_time
