@@ -115,7 +115,7 @@ parser_trim.add_argument('--min_baseq', help='chomp bases with quality less than
 parser_trim.add_argument('--min_avgq', help='minimum average quality of read [20]', default=20, type=int)
 parser_trim.add_argument('--adaptors', help='adaptor sequence to clip [Illumina adaptors]', nargs='+', default=['GATCGGAAGAGCGGTTCAGCAGGAATGCCGAG', 'ACACTCTTTCCCTACACGACGCTCTTCCGATCT', 'AATGATACGGCGACCACCGAGATCTACACTCTTTCCCTACACGACGCTCTTCCGATCT', 'CAAGCAGAAGACGGCATACGAGATCGGTCTCGGCATTCCTGCTGAACCGCTCTTCCGATCT', 'CGGTCTCGGCATTCCTGCTGAACCGCTCTTCCGATCT', 'ACACTCTTTCCCTACACGACGCTCTTCCGATCT'])
 parser_trim.add_argument('--keep_n', help='do not remove sequences containing N', default=False, action='store_true')
-parser_trim.add_argument('--min_adaptor_match', help='minimum length of match to adaptor (0=all of adaptor) [20]', default=20, type=int)
+parser_trim.add_argument('--min_adaptor_match', help='minimum length of match to adaptor (0=all of adaptor) [3]', default=3, type=int)
 
 # alignment
 parser_alignment = subparsers.add_parser('alignment', help='Single and paired end alignment using bwa', parents=[parent_parser], formatter_class=lambda prog: argparse.HelpFormatter(prog,max_help_position=35, width=140), usage='genobox.py alignment [options]')

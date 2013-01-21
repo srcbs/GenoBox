@@ -41,7 +41,7 @@ def start_vcffilter_gatk(vcfs, genome, fa, Q, rmsk, ab, prune, queue, dir, parti
    
    # release jobs #
    print "Releasing jobs"
-   vcffilter_moab.release()
+   #vcffilter_moab.release()
    
    # semaphore
    print "Waiting for jobs to finish ..."

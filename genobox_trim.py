@@ -91,10 +91,10 @@ def start_trim(args, logger):
       
    # release jobs
    print "Releasing jobs"
-   if args.se:
-      single_moab.release()
-   if args.pe1 and args.pe2:
-      paired_moab.release()
+   #if args.se:
+   #   single_moab.release()
+   #if args.pe1 and args.pe2:
+   #   paired_moab.release()
    
    # wait for jobs to finish
    print "Waiting for jobs to finish ..."

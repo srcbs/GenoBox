@@ -423,7 +423,7 @@ if __name__ == '__main__':
    parser.add_argument('--min_avgq', help='minimum average quality of read [20]', default=20, type=int)
    parser.add_argument('--adaptors', help='adaptor sequence to clip [Illumina adaptors]', nargs='+', default=['GATCGGAAGAGCGGTTCAGCAGGAATGCCGAG', 'ACACTCTTTCCCTACACGACGCTCTTCCGATCT', 'AATGATACGGCGACCACCGAGATCTACACTCTTTCCCTACACGACGCTCTTCCGATCT', 'CAAGCAGAAGACGGCATACGAGATCGGTCTCGGCATTCCTGCTGAACCGCTCTTCCGATCT', 'CGGTCTCGGCATTCCTGCTGAACCGCTCTTCCGATCT', 'ACACTCTTTCCCTACACGACGCTCTTCCGATCT'])
    parser.add_argument('--keep_n', help='do not remove sequences containing N', default=False, action='store_true')
-   parser.add_argument('--min_adaptor_match', help='minimum length of match to adaptor (0=all of adaptor) [20]', default=20, type=int)
+   parser.add_argument('--min_adaptor_match', help='minimum length of match to adaptor (0=all of adaptor) [3]', default=3, type=int)
    parser.add_argument('--o', help='output files', nargs='+', required=True)
    parser.add_argument('--gz', help='input files are gzipped [False]', default=False, action='store_true')
    parser.add_argument('--log', help='log level [INFO]', default='info')

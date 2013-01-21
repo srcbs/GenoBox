@@ -131,15 +131,7 @@ def start_bamstats(args, bam, partition, logger, wait=True):
    
    # release jobs
    print "Releasing jobs"
-   if args.mapdamage:
-      mapdamage_moab.release()
-   else:
-      flagstat_moab.release()
-      coverage_moab.release()
-      plotcoverage_moab.release()
-      avgdepth_moab.release()
-      #saturation_moab.release()
-   
+      
    # wait for jobs to finish
    if wait:
       print "Waiting for jobs to finish ..."

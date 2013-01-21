@@ -87,8 +87,8 @@ def start_genotyping_gatk(bam, genome, fa, dbsnp, call_conf, call_emit, output_m
    
    # release jobs #
    print "Releasing jobs"
-   bamindex_moab.release()
-   gatk_moab.release()
+   #bamindex_moab.release()
+   #gatk_moab.release()
       
    # semaphore (consensus is currently not waited for)
    print "Waiting for jobs to finish ..."

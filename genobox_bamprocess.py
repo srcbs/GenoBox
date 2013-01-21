@@ -131,12 +131,12 @@ def start_bamprocess(library_file, bams, mapq, libs, tmpdir, queue, final_bam, r
    # set queueing
    paths = genobox_modules.setSystem()
    home = os.getcwd()
-   cpuA = 'nodes=1:ppn=1,mem=512mb,walltime=172800'
-   cpuC = 'nodes=1:ppn=1,mem=2gb,walltime=172800'
-   cpuE = 'nodes=1:ppn=1,mem=5gb,walltime=172800'
-   cpuF = 'nodes=1:ppn=2,mem=2gb,walltime=172800'
-   cpuB = 'nodes=1:ppn=16,mem=10gb,walltime=172800'
-   cpuH = 'nodes=1:ppn=2,mem=7gb,walltime=172800'
+   cpuA = 'nodes=1:ppn=1,mem=512mb,walltime=345600'
+   cpuC = 'nodes=1:ppn=1,mem=2gb,walltime=345600'
+   cpuE = 'nodes=1:ppn=1,mem=5gb,walltime=345600'
+   cpuF = 'nodes=1:ppn=2,mem=2gb,walltime=345600'
+   cpuB = 'nodes=1:ppn=16,mem=10gb,walltime=345600'
+   cpuH = 'nodes=1:ppn=2,mem=7gb,walltime=345600'
    
    # create library instance
    if library_file and library_file != 'None':

@@ -143,13 +143,13 @@ class Moab:
          # toggle if job should be on hold or env variable should be added
          #if self.hold: cmd = '%s -h ' % cmd
          if self.env: cmd = cmd + ' -v %s' % self.env
-         
+                  
          if not self.depend:
             xqsub = cmd+' -d %s -l %s,partition=%s -O %s -E %s -r y -q %s -N %s -t %s' % (home, self.cpu, self.partition, stdout, stderr, self.queue, self.runname, call)
          else:
             xqsub = cmd+' -d %s -l %s,depend=%s,partition=%s -O %s -E %s -r y -q %s -N %s -t %s' % (home, self.cpu, depends[i], self.partition, stdout, stderr, self.queue, self.runname, call)
          
-         time.sleep(3)
+         time.sleep(1)
          if logger: logger.info(xqsub)
                    
          # submit
@@ -200,13 +200,13 @@ class Moab:
          # toggle if on hold or env variable
          #if self.hold: cmd = '%s -h' % cmd
          if self.env: cmd = cmd + ' -v %s' % self.env
-         
+                  
          if not self.depend:
             qsub = '%s -d %s -l %s,partition=%s -o %s -e %s -q %s -r y -N %s %s' % (cmd, home, self.cpu, self.partition, stdout, stderr, self.queue, self.runname, filename)
          else:
             qsub = '%s -d %s -l %s,depend=%s,partition=%s -o %s -e %s -q %s -r y -N %s %s' % (cmd, home, self.cpu, depends[i], self.partition, stdout, stderr, self.queue, self.runname, filename)
          
-         time.sleep(3)
+         time.sleep(1)
          if logger: logger.info(qsub)
          # submit
          try:
@@ -239,6 +239,10 @@ class Moab:
       
       # create job dependencies
       depends = self.create_dependencies()
+      
+      # setting pbs-server for uv/uv2
+      if self.partition == 'uv' or self.partition == 'uv2':
+         self.queue = '%s@service2:35000' % (self.queue)
       
       if self.calls[0].find('|') > -1 or self.calls[0].find('<') > -1 or self.calls[0].find('>>') > -1 or self.calls[0].find(';') > -1:
          # perform wrapcmd if calls includes pipes / left-redirects
