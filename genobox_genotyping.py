@@ -133,10 +133,10 @@ def start_genotyping(bam, chr, fa, prior, pp, queue, o, sample, partition, logge
    
    # release jobs #
    print "Releasing jobs"
-   bamindex_moab.release()
-   mpileup_moab.release()
-   bcfcombine_moab.release()
-   bcfindex_moab.release()
+   #bamindex_moab.release()
+   #mpileup_moab.release()
+   #bcfcombine_moab.release()
+   #bcfindex_moab.release()
    #consensus_moab.release()
       
    # semaphore (consensus is currently not waited for)

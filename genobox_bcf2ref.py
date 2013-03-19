@@ -66,7 +66,7 @@ def start_bcf2ref(bcf, genome_file, Q, ex, dbsnp, rmsk, indels, o, queue, dir, p
    
    # release jobs
    print "Releasing jobs"
-   bcf2ref_moab.release()
+   #bcf2ref_moab.release()
    
    # semaphore
    print "Waiting for jobs to finish ..."

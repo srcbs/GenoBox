@@ -88,16 +88,16 @@ def bwa_se_align(fastqs, fa, fqtypes, qtrim, N, alignpath, bwa6, library, thread
    home = os.getcwd()
    
    # setting cpus
-   cpuA = 'nodes=1:ppn=1,mem=7gb,walltime=172800'
-   cpuC = 'nodes=1:ppn=1,mem=2gb,walltime=172800'
+   cpuA = 'nodes=1:ppn=1,mem=7gb,walltime=345600'
+   cpuC = 'nodes=1:ppn=1,mem=2gb,walltime=345600'
    if threads != 1:
       if partition == 'uv' or partition == 'uv2':
-         cpuB = 'procs=%s,mem=5gb,walltime=172800,flags=sharedmem' % threads
+         cpuB = 'procs=%s,mem=5gb,walltime=345600,flags=sharedmem' % threads
       else:
          if threads > 8:
-            cpuB = 'nodes=1:ppn=%s,mem=7gb,walltime=172800' % threads
+            cpuB = 'nodes=1:ppn=%s,mem=7gb,walltime=345600' % threads
          else:
-            cpuB = 'nodes=1:ppn=%s,mem=5gb,walltime=172800' % threads
+            cpuB = 'nodes=1:ppn=%s,mem=5gb,walltime=345600' % threads
    else:
       cpuB = cpuA
    
@@ -166,16 +166,16 @@ def bwa_pe_align(pe1, pe2, fa, fqtypes_pe1, fqtypes_pe2, qtrim, N, alignpath, bw
    home = os.getcwd()
    
    # setting cpus
-   cpuA = 'nodes=1:ppn=1,mem=7gb,walltime=172800'
-   cpuC = 'nodes=1:ppn=1,mem=2gb,walltime=172800'
+   cpuA = 'nodes=1:ppn=1,mem=7gb,walltime=345600'
+   cpuC = 'nodes=1:ppn=1,mem=2gb,walltime=345600'
    if threads != 1:
       if partition == 'uv' or partition == 'uv2':
          cpuB = 'procs=%s,mem=5gb,walltime=172800,flags=sharedmem' % threads
       else:
          if threads > 8:
-            cpuB = 'nodes=1:ppn=%s,mem=7gb,walltime=172800' % threads
+            cpuB = 'nodes=1:ppn=%s,mem=7gb,walltime=345600' % threads
          else:
-            cpuB = 'nodes=1:ppn=%s,mem=5gb,walltime=172800' % threads
+            cpuB = 'nodes=1:ppn=%s,mem=5gb,walltime=345600' % threads
    else:
       cpuB = cpuA
    
@@ -272,16 +272,16 @@ def bwasw_pacbio(fastqs, fa, fqtypes, alignpath, bwa6, library, threads, queue, 
    home = os.getcwd()
    
    # setting cpus
-   cpuA = 'nodes=1:ppn=1,mem=7gb,walltime=172800'
-   cpuC = 'nodes=1:ppn=1,mem=2gb,walltime=172800'
+   cpuA = 'nodes=1:ppn=1,mem=7gb,walltime=345600'
+   cpuC = 'nodes=1:ppn=1,mem=2gb,walltime=345600'
    if threads != 1:
       if partition == 'uv' or partition == 'uv2':
-         cpuB = 'procs=%s,mem=5gb,walltime=172800,flags=sharedmem' % threads
+         cpuB = 'procs=%s,mem=5gb,walltime=345600,flags=sharedmem' % threads
       else:
          if threads > 8:
-            cpuB = 'nodes=1:ppn=%s,mem=7gb,walltime=172800' % threads
+            cpuB = 'nodes=1:ppn=%s,mem=7gb,walltime=345600' % threads
          else:
-            cpuB = 'nodes=1:ppn=%s,mem=5gb,walltime=172800' % threads
+            cpuB = 'nodes=1:ppn=%s,mem=5gb,walltime=345600' % threads
    else:
       cpuB = cpuA
    
@@ -326,16 +326,16 @@ def bwasw_iontorrent(fastqs, fa, fqtypes, alignpath, bwa6, library, threads, que
    home = os.getcwd()
    
    # setting cpus
-   cpuA = 'nodes=1:ppn=1,mem=7gb,walltime=172800'
-   cpuC = 'nodes=1:ppn=1,mem=2gb,walltime=172800'
+   cpuA = 'nodes=1:ppn=1,mem=7gb,walltime=345600'
+   cpuC = 'nodes=1:ppn=1,mem=2gb,walltime=345600'
    if threads != 1:
       if partition == 'uv' or partition == 'uv2':
-         cpuB = 'procs=%s,mem=5gb,walltime=172800,flags=sharedmem' % threads
+         cpuB = 'procs=%s,mem=5gb,walltime=345600,flags=sharedmem' % threads
       else:
          if threads > 8:
-            cpuB = 'nodes=1:ppn=%s,mem=7gb,walltime=172800' % threads
+            cpuB = 'nodes=1:ppn=%s,mem=7gb,walltime=345600' % threads
          else:
-            cpuB = 'nodes=1:ppn=%s,mem=5gb,walltime=172800' % threads
+            cpuB = 'nodes=1:ppn=%s,mem=5gb,walltime=345600' % threads
    else:
       cpuB = cpuA
    
@@ -460,7 +460,7 @@ def start_alignment(args, logger):
    # wait for jobs to finish
    print "Waiting for jobs to finish ..." 
    
-   s = Semaphore(semaphore_ids, home, 'bwa_alignment', args.queue, 60, 172800)
+   s = Semaphore(semaphore_ids, home, 'bwa_alignment', args.queue, 60, 345600)
    s.wait()
    
    print "--------------------------------------"

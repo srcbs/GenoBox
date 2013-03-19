@@ -27,7 +27,7 @@ def picardFilterSort(i, q, o):
    '''Filters bam on quality and sort using picard'''
    
    paths = genobox_modules.setSystem()
-   call = '''java -XX:ParallelGCThreads=8 -Xms1500m -Xmx1500m -jar %s/ViewSam.jar INPUT=%s ALIGNMENT_STATUS=Aligned VALIDATION_STRINGENCY=LENIENT | perl -ane 'if ($_ =~ m/^@/) {print $_;} else {if ($F[4] >= %i) { print $_ }}' | java -XX:ParallelGCThreads=8 -Xms4500m -Xmx4500m -jar %s/SortSam.jar INPUT=/dev/stdin OUTPUT=%s SORT_ORDER=coordinate VALIDATION_STRINGENCY=LENIENT TMP_DIR=/panvol1/simon/tmp MAX_RECORDS_IN_RAM=1000000''' % (paths['picard_home'], i, q, paths['picard_home'], o)
+   call = '''%sjava -XX:ParallelGCThreads=8 -XX:+UseParallelGC -XX:-UsePerfData -Xms1500m -Xmx1500m -jar %s/ViewSam.jar INPUT=%s ALIGNMENT_STATUS=Aligned VALIDATION_STRINGENCY=LENIENT | perl -ane 'if ($_ =~ m/^@/) {print $_;} else {if ($F[4] >= %i) { print $_ }}' | %sjava -XX:ParallelGCThreads=8 -XX:+UseParallelGC -XX:-UsePerfData -Xms4500m -Xmx4500m -jar %s/SortSam.jar INPUT=/dev/stdin OUTPUT=%s SORT_ORDER=coordinate VALIDATION_STRINGENCY=LENIENT TMP_DIR=/panvol1/simon/tmp MAX_RECORDS_IN_RAM=1000000''' % (paths['java_home'], paths['picard_home'], i, q, paths['java_home'], paths['picard_home'], o)
    subprocess.call(call, shell=True)
    
 

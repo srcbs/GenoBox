@@ -156,7 +156,7 @@ def gatk_filtration(filtered_vcfs, fa, rmsk, prune, logger):
    
    paths = genobox_modules.setSystem()
    gatk_cmd = paths['GATK_home'] + 'GenomeAnalysisTK.jar'
-   java_cmd = 'java -XX:ParallelGCThreads=8 -Xms3000m -Xmx3000m -jar '
+   java_cmd = 'java -XX:ParallelGCThreads=8 -XX:+UseParallelGC -XX:-UsePerfData -Xms3000m -Xmx3000m -jar '
    cmd = java_cmd + gatk_cmd
    bed_cmd = '%sintersectBed' % paths['bedtools_home']
    ec = []

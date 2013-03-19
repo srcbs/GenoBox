@@ -40,7 +40,7 @@ def start_dbsnp(vcf, ex, dbsnp, o, queue, partition, logger):
    
    # release jobs #
    print "Releasing jobs"
-   dbsnp_moab.release()
+   #dbsnp_moab.release()
    
    # semaphore
    print "Waiting for jobs to finish ..."

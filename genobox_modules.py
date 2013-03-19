@@ -751,7 +751,7 @@ def set_fqtype(f, gz):
                if count >= 5000:
                   type = 'Illumina'
                   break
-            if q > 83:
+            if q > 93:
                pos = 'Illumina_Solexa'
             elif q < 59:
                type = 'Sanger'

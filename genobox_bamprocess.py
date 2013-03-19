@@ -31,7 +31,7 @@ def merge_bam(libs, lib_infiles, add_suffix=False, final_suffix='', tmpdir='/pan
    paths = genobox_modules.setSystem()
    calls = []
    outfiles = []
-   java_call = paths['java_home']+'java -XX:ParallelGCThreads=8 -Xms4500m -Xmx4500m -jar '
+   java_call = paths['java_home']+'java -XX:ParallelGCThreads=8 -XX:+UseParallelGC -XX:-UsePerfData -Xms4500m -Xmx4500m -jar '
    picard_cmd = paths['picard_home'] + 'MergeSamFiles.jar'
    for i in range(len(libs)):
       lib = libs[i]
@@ -71,7 +71,7 @@ def rmdup(infiles, tmpdir):
    paths = genobox_modules.setSystem()
    calls = []
    outfiles = []
-   java_call = paths['java_home']+'java -XX:ParallelGCThreads=8 -Xms4500m -Xmx4500m -jar '
+   java_call = paths['java_home']+'java -XX:ParallelGCThreads=8 -XX:+UseParallelGC -XX:-UsePerfData -Xms4500m -Xmx4500m -jar '
    picard_cmd = paths['picard_home'] + 'MarkDuplicates.jar'
    
    for i,f in enumerate(infiles):
@@ -91,7 +91,7 @@ def realign_bam(in_bam, out_bam, fa, known=None):
    calls = []
    
    gatk_cmd = paths['GATK_home'] + 'GenomeAnalysisTK.jar'
-   java_call = paths['java_home']+'java -Djava.io.tmpdir=/panvol1/simon/tmp/ -XX:ParallelGCThreads=8 -Xms4500m -Xmx4500m -jar %s ' % gatk_cmd
+   java_call = paths['java_home']+'java -Djava.io.tmpdir=/panvol1/simon/tmp/ -XX:ParallelGCThreads=8 -XX:+UseParallelGC -XX:-UsePerfData -Xms4500m -Xmx4500m -jar %s ' % gatk_cmd
    
    realign_bam = out_bam.replace('.bam', '.realign.bam')
    
@@ -136,6 +136,7 @@ def start_bamprocess(library_file, bams, mapq, libs, tmpdir, queue, final_bam, r
    cpuE = 'nodes=1:ppn=1,mem=5gb,walltime=345600'
    cpuF = 'nodes=1:ppn=2,mem=2gb,walltime=345600'
    cpuB = 'nodes=1:ppn=16,mem=10gb,walltime=345600'
+   cpuG = 'nodes=1:ppn=1,mem=6gb,walltime=345600'
    cpuH = 'nodes=1:ppn=2,mem=7gb,walltime=345600'
    
    # create library instance
@@ -175,7 +176,7 @@ def start_bamprocess(library_file, bams, mapq, libs, tmpdir, queue, final_bam, r
    print "Submitting jobs"
    filtersort_moab = Moab(filter_sort_calls, logfile=logger, runname='run_genobox_filtersort', queue=queue, cpu=cpuH, partition=partition)
    mergelib_moab = Moab(merge_lib_calls, logfile=logger, runname='run_genobox_lib_merge', queue=queue, cpu=cpuE, depend=True, depend_type='complex', depend_val=map(len, lib2bam.values()), depend_ids=filtersort_moab.ids, partition=partition)
-   rmdup_moab = Moab(rmdup_calls, logfile=logger, runname='run_genobox_rmdup', queue=queue, cpu=cpuE, depend=True, depend_type='one2one', depend_val=[1], depend_ids=mergelib_moab.ids, partition=partition)          # NB: If memory should be changed, also change java memory spec in rmdup function
+   rmdup_moab = Moab(rmdup_calls, logfile=logger, runname='run_genobox_rmdup', queue=queue, cpu=cpuG, depend=True, depend_type='one2one', depend_val=[1], depend_ids=mergelib_moab.ids, partition=partition)          # NB: If memory should be changed, also change java memory spec in rmdup function
    mergefinal_moab = Moab(merge_final_call, logfile=logger, runname='run_genobox_final_merge', queue=queue, cpu=cpuC, depend=True, depend_type='conc', depend_val=[len(rmdup_moab.ids)], depend_ids=rmdup_moab.ids, partition=partition)
    if realignment:
       realign_moab = Moab(realign_calls, logfile=logger, runname='run_genobox_realignment', queue=queue, cpu=cpuE, depend=True, depend_type='one2one', depend_val=[1], depend_ids=mergefinal_moab.ids, partition=partition)
@@ -192,9 +193,9 @@ def start_bamprocess(library_file, bams, mapq, libs, tmpdir, queue, final_bam, r
    # semaphore
    print "Waiting for jobs to finish ..." 
    if realignment:
-      s = Semaphore(realign_moab.ids, home, 'bam_processing', queue, 20, 2*86400)
+      s = Semaphore(realign_moab.ids, home, 'bam_processing', queue, 20, 345600)
    else:
-      s = Semaphore(mergefinal_moab.ids, home, 'bam_processing', queue, 20, 2*86400)
+      s = Semaphore(mergefinal_moab.ids, home, 'bam_processing', queue, 20, 345600)
    s.wait()
    print "--------------------------------------"
    

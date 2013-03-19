@@ -35,7 +35,7 @@ def unified_genotyper(bam, genome, fa, dbsnp,  call_conf, call_emit, output_mode
    
    paths = genobox_modules.setSystem()
    gatk_cmd = paths['GATK_home'] + 'GenomeAnalysisTK.jar'
-   java_cmd = 'java -Djava.io.tmpdir=/panvol1/simon/tmp/ -XX:ParallelGCThreads=8 -Xms3000m -Xmx3000m -jar '
+   java_cmd = 'java -Djava.io.tmpdir=/panvol1/simon/tmp/ -XX:ParallelGCThreads=8 -XX:+UseParallelGC -XX:-UsePerfData -Xms3000m -Xmx3000m -jar '
    cmd = java_cmd + gatk_cmd
    
    calls = []

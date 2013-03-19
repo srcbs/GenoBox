@@ -257,7 +257,7 @@ for repeat in range(nrepeats):
     for colI in range(len(ColleFiles)):
         dico_c['count']=colI
         
-        commandRMDUP="java -XX:ParallelGCThreads=8 -Xms4500m -Xmx4500m -jar /panvol1/simon/bin/picard-tools-1.56/MarkDuplicates.jar INPUT=%(basefile)s.%(count)s.bam OUTPUT=%(basefile)s.%(count)s.srt.rmdup.bam METRICS_FILE=/dev/null REMOVE_DUPLICATES=true ASSUME_SORTED=true TMP_DIR=/panvol1/simon/tmp VALIDATION_STRINGENCY=SILENT"%dico_c
+        commandRMDUP="java -XX:ParallelGCThreads=8 -XX:+UseParallelGC -XX:-UsePerfData -Xms4500m -Xmx4500m -jar /panvol1/simon/bin/picard-tools-1.56/MarkDuplicates.jar INPUT=%(basefile)s.%(count)s.bam OUTPUT=%(basefile)s.%(count)s.srt.rmdup.bam METRICS_FILE=/dev/null REMOVE_DUPLICATES=true ASSUME_SORTED=true TMP_DIR=/panvol1/simon/tmp VALIDATION_STRINGENCY=SILENT"%dico_c
         
         print commandRMDUP
         os.system(commandRMDUP)

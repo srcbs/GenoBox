@@ -53,7 +53,7 @@ def start_vcffilter(bcf, genome, caller, Q, ex, rmsk, ab, prune, o, queue, dir, 
    
    # release jobs #
    print "Releasing jobs"
-   vcffilter_moab.release()
+   #vcffilter_moab.release()
    
    # semaphore
    print "Waiting for jobs to finish ..."
