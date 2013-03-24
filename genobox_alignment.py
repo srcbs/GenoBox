@@ -416,7 +416,12 @@ def start_alignment(args, logger):
             toalign = []
             for v in value:
                if v in args.se: toalign.append(v)
-            for fq in toalign: fqtypes_se.append(check_formats_fq(fq, args.gz, args.bwa6))
+            for fq in toalign: 
+               if args.quals:
+                  fqtypes_se.append(args.quals)
+               else:
+                  fqtypes_se.append(check_formats_fq(fq, args.gz, args.bwa6))
+            
             # submit
             (se_align_ids, bamfiles_se) = bwa_se_align(toalign, args.fa, fqtypes_se, args.qtrim, args.N, 'alignment/', args.bwa6, library, args.n, args.queue, args.add_aln, args.partition, logger)
             semaphore_ids.extend(se_align_ids)
@@ -426,7 +431,13 @@ def start_alignment(args, logger):
             for v in value:
                if v in args.se: toalign.append(v)
             fqtypes_se = []
-            for fq in toalign: fqtypes_se.append(check_formats_fq(fq, args.gz, args.bwa6))
+            for fq in toalign: 
+               if args.quals:
+                  fqtypes_se.append(args.quals)
+               else:
+                  fqtypes_se.append(check_formats_fq(fq, args.gz, args.bwa6))
+            
+            # submit
             (se_align_ids, bamfiles_se) = bwasw_pacbio(toalign, args.fa, fqtypes_se, 'alignment/', args.bwa6, library, args.n, args.queue, args.partition, logger)
             semaphore_ids.extend(se_align_ids)
             bamfiles.update(bamfiles_se)
@@ -435,7 +446,13 @@ def start_alignment(args, logger):
             for v in value:
                if v in args.se: toalign.append(v)
             fqtypes_se = []
-            for fq in toalign: fqtypes_se.append(check_formats_fq(fq, args.gz, args.bwa6))
+            for fq in toalign: 
+               if args.quals:
+                  fqtypes_se.append(args.quals)
+               else:
+                  fqtypes_se.append(check_formats_fq(fq, args.gz, args.bwa6))
+            
+            # submit
             (se_align_ids, bamfiles_se) = bwasw_iontorrent(toalign, args.fa, fqtypes_se, 'alignment/', args.bwa6, library, args.n, args.queue, args.partition, logger)
             semaphore_ids.extend(se_align_ids)
             bamfiles.update(bamfiles_se)
@@ -448,9 +465,19 @@ def start_alignment(args, logger):
       # set fqtypes
       fqtypes_pe1 = []
       fqtypes_pe2 = []
-      for fq in args.pe1: fqtypes_pe1.append(check_formats_fq(fq, args.gz, args.bwa6))
-      for fq in args.pe2: fqtypes_pe2.append(check_formats_fq(fq, args.gz, args.bwa6))
+      for fq in args.pe1: 
+         if args.quals:
+            fqtypes_pe1.append(args.quals)
+         else:
+            fqtypes_pe1.append(check_formats_fq(fq, args.gz, args.bwa6))
       
+      for fq in args.pe2:
+         if args.quals:
+            fqtypes_pe2.append(args.quals)
+         else:
+            fqtypes_pe2.append(check_formats_fq(fq, args.gz, args.bwa6))
+      
+      # submit
       print "Submitting paired end alignments"
       (pe_align_ids, bamfiles_pe) = bwa_pe_align(args.pe1, args.pe2, args.fa, fqtypes_pe1, fqtypes_pe2, args.qtrim, args.N, 'alignment/', args.bwa6, args.a, library, args.n, args.queue, args.add_aln, args.partition, logger)            
       semaphore_ids.extend(pe_align_ids)
