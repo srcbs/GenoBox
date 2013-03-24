@@ -123,6 +123,8 @@ def bwa_se_align(fastqs, fa, fqtypes, qtrim, N, alignpath, bwa6, library, thread
       elif fqtypes[i] == 'Sanger':
          arg = ' -t %i -q %i %s %s > %s' % (threads, qtrim, fa, fq, saifile)   
       bwa_align.append(cmd+arg)
+      elif fqtypes[i] == 'Solexa':
+         raise ValueError('File %s is in Solexa format, convert to Sanger first\n' % fq)
    
    # samse
    bwa_samse = []
