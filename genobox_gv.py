@@ -4,6 +4,8 @@ from genobox_genotyping import *
 from genobox_vcffilter import *
 from genobox_genotyping_gatk import *
 from genobox_vcffilter_gatk import *
+from genobox_dbsnp import *
+from genobox_bcf2ref import *
 import genobox_modules
 
 

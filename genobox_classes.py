@@ -153,17 +153,23 @@ class Moab:
          if logger: logger.info(xqsub)
                    
          # submit
-         try:
-            id = subprocess.check_output(xqsub, shell=True)
-            #print id
-         except:
-            print 'Job error for \"%s\" waiting 1m' % xqsub
-            time.sleep(60)
-            sys.stdout.write('Retrying submission...')
-            id = subprocess.check_output(xqsub, shell=True)
-            sys.stdout.write(' success - continuing\n')
+         id = None
+         tries = 0
+         while id == None:
+            tries = tries + 1
+            try:
+               id = subprocess.check_output(xqsub, shell=True)
+            except:
+               print 'Job error for \"%s\" waiting 1m' % xqsub
+               time.sleep(60)
+               sys.stdout.write('Retrying submission...')
+               #id = subprocess.check_output(xqsub, shell=True)
+            if tries == 60:
+               raise ValueError('Could not submit - exiting\n')
+               
+         if tries > 1: sys.stdout.write(' success - continuing\n')
          ids.append(id.split('.')[0])
-         #print ids
+      
       return(ids)
    
    def submit_wrapcmd(self, depends, logger):
@@ -209,20 +215,23 @@ class Moab:
          time.sleep(1)
          if logger: logger.info(qsub)
          # submit
-         try:
-            id = subprocess.check_output(qsub, shell=True)
-            #print id
-         except:
-            print 'Job error for \"%s\" waiting 1m' % qsub
-            time.sleep(60)
-            sys.stdout.write('Retrying submission...')
-            id = subprocess.check_output(qsub, shell=True)
-            sys.stdout.write(' success - continuing\n')
+         # submit
+         id = None
+         tries = 0
+         while id == None:
+            tries = tries + 1
+            try:
+               id = subprocess.check_output(qsub, shell=True)
+            except:
+               print 'Job error for \"%s\" waiting 1m' % qsub
+               time.sleep(60)
+               sys.stdout.write('Retrying submission...')
+               #id = subprocess.check_output(xqsub, shell=True)
+            if tries == 60:
+               raise ValueError('Could not submit - exiting\n')
+               
+         if tries > 1: sys.stdout.write(' success - continuing\n')
          ids.append(id.split('.')[0])
-         
-         # remove pbsjob file
-         #rm_files([filename])
-         #print ids
       return ids
    
    def dispatch(self):
