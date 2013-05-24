@@ -122,9 +122,9 @@ def bwa_se_align(fastqs, fa, fqtypes, qtrim, N, alignpath, bwa6, library, thread
          arg = ' -I -t %i -q %i %s %s > %s' % (threads, qtrim, fa, fq, saifile)
       elif fqtypes[i] == 'Sanger':
          arg = ' -t %i -q %i %s %s > %s' % (threads, qtrim, fa, fq, saifile)   
-      bwa_align.append(cmd+arg)
       elif fqtypes[i] == 'Solexa':
          raise ValueError('File %s is in Solexa format, convert to Sanger first\n' % fq)
+      bwa_align.append(cmd+arg)
    
    # samse
    bwa_samse = []
@@ -441,7 +441,7 @@ def start_alignment(args, logger):
             (se_align_ids, bamfiles_se) = bwasw_pacbio(toalign, args.fa, fqtypes_se, 'alignment/', args.bwa6, library, args.n, args.queue, args.partition, logger)
             semaphore_ids.extend(se_align_ids)
             bamfiles.update(bamfiles_se)
-         elif key == 'IONTORRENT':
+         elif key == 'IONTORRENT' or key == '454':
             toalign = []
             for v in value:
                if v in args.se: toalign.append(v)
