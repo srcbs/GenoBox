@@ -98,6 +98,8 @@ def filter_vcf(f, genome, rms_mq=25.0, Q=30.0, allelic_balance=0.2):
             if sb_m2:
                if float(sb_m2.group(1)) > 0.1:
                   continue
+            else:
+               pass
          else:
             if float(sb_m.group(1)) > 0.1:
                continue
@@ -290,7 +292,7 @@ if __name__ == '__main__':
    
    args = parser.parse_args()
    #args = parser.parse_args('--vcf genotyping/BI16.flt.sort.rmdup.realign.22.raw.vcf.gz --fa /panvol1/simon/projects/arctic/references/build37/hs.build37.1.fa --genome /panvol1/simon/projects/arctic/references/build37/hs.build37.1.fa.male.hc.genome --Q 40.000000 --rmsk /panvol1/simon/projects/arctic/references/build37/rmsk.build37 --ab 0.200000 --prune 5'.split())
-   #args = parser.parse_args('--vcf /home/projects5/pr_99009/people/simon/projects/stanford_genomes/analysis/BI16/genotyping/BI16.flt.sort.rmdup.realign.MT.raw.vcf.gz --fa /panvol1/simon/projects/arctic/references/build37/hs.build37.1.fa --genome /panvol1/simon/projects/arctic/references/build37/hs.build37.1.fa.male.hc.genome --Q 40.000000 --rmsk /panvol1/simon/projects/arctic/references/build37/rmsk.build37 --ab 0.200000 --prune 5'.split())
+   #args = parser.parse_args('--vcf /net/home/home/antique/pr_99009/people/simon/arctic/analysis/haplotyper/DNK02_test/genotyping/DNK02.hg19.chr22.raw.snps.indels.vcf --fa /panvol1/simon/projects/arctic/references/build37/hs.build37.1.fa --genome /panvol1/simon/projects/arctic/references/build37/hs.build37.1.fa.male.genome --Q 20.000000 --rmsk /panvol1/simon/projects/arctic/references/build37/rmsk.build37 --ab 0.200000 --prune 5'.split())
    
    # set logging
    logger = logging.getLogger('genobox.py')
